@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Arcane AI Dataset Builder</title>
+    <style>
+        :root { --bg: #121212; --card: #1e1e1e; --blue: #1a237e; --red: #b71c1c; --text: #e0e0e0; }
+        body { font-family: 'Malgun Gothic', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+        .match-card { background: var(--card); margin-bottom: 40px; border-radius: 12px; border: 1px solid #333; overflow: hidden; }
+        .header { background: #333; padding: 12px 20px; display: flex; justify-content: space-between; font-weight: bold; }
+        .teams-container { display: flex; }
+        .team { flex: 1; padding: 20px; }
+        .blue-team { background: rgba(26, 35, 126, 0.15); border-right: 1px solid #333; }
+        .red-team { background: rgba(183, 28, 28, 0.15); }
+        .row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #333; }
+        .name { font-size: 0.9rem; font-weight: bold; }
+        input { width: 70px; padding: 8px; background: #2a2a2a; border: 1px solid #555; color: #fff; text-align: center; border-radius: 6px; }
+        .form-card { max-width: 760px; margin: 40px auto; background: var(--card); border: 1px solid #333; border-radius: 16px; padding: 28px; box-shadow: 0 12px 32px rgba(0,0,0,0.35); }
+        .form-title { margin: 0 0 12px; font-size: 1.4rem; }
+        .form-desc { margin: 0 0 20px; color: #aaa; line-height: 1.6; }
+        .puuid-form { display: flex; gap: 10px; }
+        .puuid-input { flex: 1; width: auto; text-align: left; }
+        .puuid-submit { padding: 10px 22px; border-radius: 10px; font-size: 1rem; box-shadow: none; }
+        .footer { position: sticky; bottom: 0; background: var(--bg); padding: 25px; text-align: center; border-top: 2px solid #333; z-index: 100; }
+        button { padding: 18px 100px; background: #4caf50; color: white; border: none; border-radius: 40px; font-size: 1.2rem; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+<h1 style="text-align: center;">📊 AI 학습용 데이터 채점 (Match-v5 구조)</h1>
+<div id="puuidFormCard" class="form-card" style="display:none;">
+    <h2 class="form-title">PUUID 입력</h2>
+    <p class="form-desc">
+        학습 데이터를 만들 소환사의 PUUID를 입력하세요.
+        입력하면 <b>/tune.html?puuid=...</b> 주소로 이동한 뒤 데이터를 불러옵니다.
+    </p>
+    <form id="puuidForm" class="puuid-form">
+        <input id="puuidInput" class="puuid-input" type="text" placeholder="PUUID 입력" autocomplete="off">
+        <button class="puuid-submit" type="submit">데이터 열기</button>
+    </form>
+</div>
+<div id="status" style="text-align: center;">데이터를 불러오는 중...</div>
+<div id="matchContainer"></div>
+
+<div class="footer">
+    <button onclick="generateCSV()">CSV 데이터셋 생성 및 다운로드</button>
+</div>
+
+<script>
+    const puuid = new URLSearchParams(window.location.search).get('puuid');
+    let globalMatches = [];
+
+    const puuidFormCard = document.getElementById('puuidFormCard');
+    const puuidForm = document.getElementById('puuidForm');
+    const puuidInput = document.getElementById('puuidInput');
+    const status = document.getElementById('status');
+    const footer = document.querySelector('.footer');
+
+    puuidForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        const nextPuuid = puuidInput.value.trim();
+        if (!nextPuuid) {
+            status.innerHTML = `<h2 style="color:#ff5252;">PUUID를 입력해주세요.</h2>`;
+            return;
+        }
+
+        window.location.href = `/tune.html?puuid=${encodeURIComponent(nextPuuid)}`;
+    });
+
+    if (!puuid) {
+        puuidFormCard.style.display = 'block';
+        status.innerHTML = 'PUUID를 입력하면 데이터를 불러옵니다.';
+        footer.style.display = 'none';
+    } else {
+        loadLearningData(puuid);
+    }
+
+    // 1. 데이터 로드 (List<MatchModelDto> 수신)
+    function loadLearningData(targetPuuid) {
+        status.innerHTML = '데이터를 불러오는 중...';
+
+        fetch(`/api/v1/tune/learning-data?puuid=${encodeURIComponent(targetPuuid)}`)
+            .then(async res => {
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(errorText || `HTTP ${res.status}`);
+                }
+
+                return res.json();
+            })
+            .then(data => {
+                globalMatches = Array.isArray(data) ? data : [];
+                status.style.display = 'none';
+                render(globalMatches);
+            })
+            .catch(err => {
+                puuidFormCard.style.display = 'block';
+                puuidInput.value = targetPuuid;
+                footer.style.display = 'none';
+                status.style.display = 'block';
+                status.innerHTML = `<h2 style="color:#ff5252;">로드 실패: ${err.message}</h2>`;
+            });
+    }
+
+    function render(matches) {
+        const container = document.getElementById('matchContainer');
+        if (!matches.length) {
+            status.style.display = 'block';
+            status.innerHTML = `<h2 style="color:#ff5252;">표시할 매치 데이터가 없습니다.</h2>`;
+            footer.style.display = 'none';
+            return;
+        }
+
+        footer.style.display = 'block';
+        // matches는 매치 20개의 배열
+        container.innerHTML = matches.map((match, gIdx) => {
+            // 제공해주신 JSON의 'info.participants' 배열 접근
+            const players = match.info.participants;
+
+            return `
+                    <div class="match-card">
+                        <div class="header">
+                            <span>GAME #${gIdx + 1}</span>
+                            <span>Match ID: ${match.metadata.matchId}</span>
+                        </div>
+                        <div class="teams-container">
+                            <div class="team blue-team">
+                                <div style="color:#8ab4f8; font-weight:bold; margin-bottom:10px;">BLUE TEAM (1-5)</div>
+                                ${renderPlayers(players.slice(0, 5), gIdx, 0)}
+                            </div>
+                            <div class="team red-team">
+                                <div style="color:#f88a8a; font-weight:bold; margin-bottom:10px;">RED TEAM (6-10)</div>
+                                ${renderPlayers(players.slice(5, 10), gIdx, 5)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+        }).join('');
+    }
+
+    function renderPlayers(players, gIdx, startIdx) {
+        return players.map((p, pIdx) => `
+                <div class="row">
+                    <span class="name"><b>${startIdx + pIdx + 1}.</b> ${p.riotIdGameName} #${p.riotIdTagline}</span>
+                    <input type="number"
+                           class="score-input"
+                           data-game="${gIdx}"
+                           data-player="${startIdx + pIdx}"
+                           placeholder="점수" min="0" max="100">
+                </div>
+            `).join('');
+    }
+
+    // 2. CSV 생성 (X: 인게임 지표 + Challenges, Y: 입력 점수)
+    function generateCSV() {
+        if (globalMatches.length === 0) return;
+
+        const csvRows = [];
+        const scoreInputs = document.querySelectorAll('.score-input');
+        const scoresMap = {};
+
+        scoreInputs.forEach(input => {
+            const key = `${input.dataset.game}_${input.dataset.player}`;
+            scoresMap[key] = input.value || 0;
+        });
+
+        // 헤더 자동 추출 (첫 번째 게임의 첫 번째 플레이어 기준)
+        const samplePlayer = globalMatches[0].info.participants[0];
+        const headers = [];
+
+        // 일반 지표 필드 추출
+        Object.keys(samplePlayer).forEach(k => {
+            if (typeof samplePlayer[k] !== 'object') headers.push(k);
+        });
+        // Challenges 내부 지표 평면화 (Flattening)
+        if (samplePlayer.challenges) {
+            Object.keys(samplePlayer.challenges).forEach(ck => headers.push("challenge_" + ck));
+        }
+        headers.push("performanceScore"); // 마지막 열 정답(Y)
+        csvRows.push(headers.join(','));
+
+        // 데이터 행 생성 (20개 게임 x 10명 = 200명)
+        globalMatches.forEach((match, gIdx) => {
+            match.info.participants.forEach((p, pIdx) => {
+                const score = scoresMap[`${gIdx}_${pIdx}`];
+                const row = headers.map(h => {
+                    if (h === "performanceScore") return score;
+                    if (h.startsWith("challenge_")) {
+                        const cKey = h.replace("challenge_", "");
+                        return p.challenges ? (p.challenges[cKey] ?? 0) : 0;
+                    }
+                    let val = p[h];
+                    if (typeof val === 'string') return `"${val.replace(/"/g, '""')}"`;
+                    return val ?? 0;
+                });
+                csvRows.push(row.join(','));
+            });
+        });
+
+        // 다운로드 실행 (BOM 추가로 한글 깨짐 방지)
+        const blob = new Blob(["\ufeff" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `League_AI_Dataset_${new Date().getTime()}.csv`;
+        link.click();
+    }
+</script>
+</body>
+</html>

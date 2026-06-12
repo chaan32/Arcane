@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Generated data and model artifacts
+data/
+models/
+
+# OS/editor noise
+.DS_Store
+.idea/
+.vscode/

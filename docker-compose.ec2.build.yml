@@ -1,0 +1,12 @@
+services:
+  api-server:
+    build:
+      context: ./backend/Arcane_Backend
+
+  worker-server:
+    build:
+      context: ./worker
+
+  ai-server:
+    build:
+      context: ./ai/Arcane_AI

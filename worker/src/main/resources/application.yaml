@@ -1,0 +1,88 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: worker
+  datasource :
+    url: ${SPRING_DATASOURCE_URL}
+    username : ${SPRING_DATASOURCE_USERNAME}
+    password : ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa :
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT}
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+    consumer:
+      group-id: arcane-ranking-worker
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.arcane.worker.kafka.event.dto
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.arcane.worker.kafka.event.dto.RankingUpdateRequestedEvent
+        max.poll.records: 1
+        max.poll.interval.ms: 21600000
+
+    listener:
+      ack-mode: manual
+      concurrency: 1
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        spring.json.add.type.headers: false
+
+server:
+  address: 0.0.0.0
+  port : 7749
+
+
+riot:
+  # 이게 진짜임
+  api-key: ${RIOT_API_KEY}
+
+  patch-version : ${RIOT_PATCH_VERSION}
+
+arcane:
+  kafka:
+    topics:
+      # 업데이트 요청
+      ranking-update-requested: arcane.ranking.update.requested
+      # 업데이트 다함
+      ranking-update-completed: arcane.ranking.update.completed
+      # 업데이트 실패
+      ranking-update-failed: arcane.ranking.update.failed
+      # 업데이트 지움?
+      ranking-update-dlt: arcane.ranking.update.dlt
+      dataset-collect-requested: arcane.dataset.collect.requested
+      dataset-collect-completed: arcane.dataset.collect.completed
+      dataset-collect-failed: arcane.dataset.collect.failed
+      dataset-collect-dlt: arcane.dataset.collect.dlt
+      champion-analysis-requested: arcane.champion.analysis.requested
+      champion-analysis-progress: arcane.champion.analysis.progress
+      champion-analysis-completed: arcane.champion.analysis.completed
+      champion-analysis-failed: arcane.champion.analysis.failed
+      champion-analysis-dlt: arcane.champion.analysis.dlt
+      game-data-sync-requested: arcane.game-data.sync.requested
+      game-data-sync-completed: arcane.game-data.sync.completed
+      game-data-sync-failed: arcane.game-data.sync.failed
+      game-data-sync-dlt: arcane.game-data.sync.dlt

@@ -1,0 +1,132 @@
+# Vercel Frontend + EC2 Backend Deployment
+
+이 배포 구조에서는 프론트엔드는 Vercel에 올리고, API Server / Worker Server / AI Server / MySQL / Redis / Kafka / MongoDB / Elasticsearch / Logstash / Kibana / Prometheus / Grafana는 EC2에서 Docker Compose로 실행한다.
+
+## 1. 구조
+
+```mermaid
+flowchart LR
+    USER["User Browser"] --> VERCEL["Vercel<br/>Next.js Frontend"]
+    VERCEL --> API["EC2 Public API<br/>Spring Boot API Server:8080"]
+    VERCEL -. WebSocket .-> API
+
+    subgraph EC2["EC2 Docker Compose"]
+        API --> MYSQL["MySQL"]
+        API --> REDIS["Redis"]
+        API --> MONGO["MongoDB"]
+        API --> ES["Elasticsearch"]
+        API --> KAFKA["Kafka"]
+        API --> AI["FastAPI AI Server"]
+        KAFKA --> WORKER["Spring Boot Worker"]
+        WORKER --> MYSQL
+        WORKER --> REDIS
+        WORKER --> MONGO
+        WORKER --> ES
+        WORKER --> RIOT["Riot API / Data Dragon"]
+        PROM["Prometheus"] --> API
+        GRAF["Grafana"] --> PROM
+        LOGSTASH["Logstash"] --> ES
+        KIBANA["Kibana"] --> ES
+    end
+```
+
+## 2. Vercel 설정
+
+Vercel 프로젝트의 Environment Variables에 아래 값을 넣는다.
+
+```properties
+NEXT_PUBLIC_API_URL=https://api.your-domain.com
+NEXT_PUBLIC_DDRAGON_VERSION=latest
+```
+
+도메인이 없다면 임시로 아래처럼 EC2 public IP를 직접 사용할 수 있다.
+
+```properties
+NEXT_PUBLIC_API_URL=http://your-ec2-public-ip:8080
+```
+
+채팅 WebSocket 주소는 프론트 코드에서 `NEXT_PUBLIC_API_URL`을 기준으로 자동 변환된다.
+
+- `https://api.your-domain.com` -> `wss://api.your-domain.com/ws/chat`
+- `http://your-ec2-public-ip:8080` -> `ws://your-ec2-public-ip:8080/ws/chat`
+
+## 3. EC2 설정
+
+EC2에서 루트 경로에 `.env.ec2`를 만든다.
+
+```bash
+cp .env.ec2.example .env.ec2
+```
+
+반드시 아래 값은 실제 값으로 바꾼다.
+
+```properties
+APP_CORS_ALLOWED_ORIGIN_PATTERNS=https://your-arcane-frontend.vercel.app
+OAUTH2_SUCCESS_REDIRECT_URI=https://your-arcane-frontend.vercel.app/oauth/callback
+OAUTH2_FAILURE_REDIRECT_URI=https://your-arcane-frontend.vercel.app/oauth/callback
+SPRING_DATASOURCE_PASSWORD=...
+JWT_SECRET=...
+JWT_PASSWORD=...
+RIOT_API_KEY=...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+NAVER_CLIENT_ID=...
+NAVER_CLIENT_SECRET=...
+```
+
+Vercel preview URL까지 허용하려면 comma로 추가한다.
+
+```properties
+APP_CORS_ALLOWED_ORIGIN_PATTERNS=https://your-arcane-frontend.vercel.app,https://*.vercel.app
+```
+
+## 4. EC2 실행
+
+```bash
+docker compose --env-file .env.ec2 -f docker-compose.ec2.yml up -d
+```
+
+상태 확인:
+
+```bash
+docker compose --env-file .env.ec2 -f docker-compose.ec2.yml ps
+```
+
+API health 확인:
+
+```bash
+curl http://localhost:8080/actuator/health
+```
+
+EC2에서 이미지를 직접 빌드해야 하는 경우에만 build override를 함께 사용한다.
+
+```bash
+docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -f docker-compose.ec2.build.yml up -d --build
+```
+
+GitHub Actions 배포에서는 GHCR에 올라간 이미지를 pull하므로 build override를 사용하지 않는다.
+
+EC2 보안 그룹에서는 최소한 API 포트만 외부에 열어둔다.
+
+- `8080`: Vercel에서 호출할 API
+- `3001`, `5601`, `9090`, `9200`, `3307`, `6379`, `27017`, `9092` 등은 기본적으로 외부 개방하지 않는다.
+
+## 5. 로컬 개발과의 차이
+
+- `docker-compose.yml`: 로컬에서 프론트까지 한 번에 띄우는 개발용 compose
+- `docker-compose.ec2.yml`: EC2에서 프론트를 제외하고 백엔드/인프라 이미지를 실행하는 배포용 compose
+- `docker-compose.ec2.build.yml`: EC2에서 이미지를 직접 빌드할 때만 사용하는 compose override
+- `frontend/Arcane_Frontend/.env.example`: Vercel 환경변수 예시
+- `.env.ec2.example`: EC2 Docker Compose 환경변수 예시
+
+## 6. 배포 체크리스트
+
+- Vercel `NEXT_PUBLIC_API_URL`이 EC2 API 주소를 바라보는지 확인
+- EC2 `.env.ec2`의 `APP_CORS_ALLOWED_ORIGIN_PATTERNS`에 Vercel origin이 포함됐는지 확인
+- OAuth 성공/실패 redirect URI가 Vercel `/oauth/callback`으로 설정됐는지 확인
+- Google/Naver 개발자 콘솔에는 EC2 API 서버의 OAuth callback URL이 등록됐는지 확인
+  - Google: `https://api.your-domain.com/login/oauth2/code/google`
+  - Naver: `https://api.your-domain.com/login/oauth2/code/naver`
+- Redis volume이 유지되는지 확인
+- MySQL/MongoDB volume이 유지되는지 확인
+- Kafka bootstrap server는 컨테이너 내부에서 `kafka:19092`를 쓰는지 확인

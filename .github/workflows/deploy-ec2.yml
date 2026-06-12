@@ -1,0 +1,121 @@
+name: Build Images and Deploy EC2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    outputs:
+      image_namespace: ${{ steps.names.outputs.image_namespace }}
+      api_image: ${{ steps.names.outputs.api_image }}
+      worker_image: ${{ steps.names.outputs.worker_image }}
+      ai_image: ${{ steps.names.outputs.ai_image }}
+      image_tag: ${{ steps.names.outputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare image names
+        id: names
+        run: |
+          IMAGE_NAMESPACE="$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          IMAGE_TAG="${GITHUB_SHA::12}"
+          {
+            echo "image_namespace=${IMAGE_NAMESPACE}"
+            echo "image_tag=${IMAGE_TAG}"
+            echo "api_image=${REGISTRY}/${IMAGE_NAMESPACE}/arcane-api:${IMAGE_TAG}"
+            echo "worker_image=${REGISTRY}/${IMAGE_NAMESPACE}/arcane-worker:${IMAGE_TAG}"
+            echo "ai_image=${REGISTRY}/${IMAGE_NAMESPACE}/arcane-ai:${IMAGE_TAG}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API server
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/Arcane_Backend
+          push: true
+          tags: |
+            ${{ steps.names.outputs.api_image }}
+            ${{ env.REGISTRY }}/${{ steps.names.outputs.image_namespace }}/arcane-api:latest
+          cache-from: type=gha,scope=arcane-api
+          cache-to: type=gha,mode=max,scope=arcane-api
+
+      - name: Build and push Worker server
+        uses: docker/build-push-action@v6
+        with:
+          context: worker
+          push: true
+          tags: |
+            ${{ steps.names.outputs.worker_image }}
+            ${{ env.REGISTRY }}/${{ steps.names.outputs.image_namespace }}/arcane-worker:latest
+          cache-from: type=gha,scope=arcane-worker
+          cache-to: type=gha,mode=max,scope=arcane-worker
+
+      - name: Build and push AI server
+        uses: docker/build-push-action@v6
+        with:
+          context: ai/Arcane_AI
+          push: true
+          tags: |
+            ${{ steps.names.outputs.ai_image }}
+            ${{ env.REGISTRY }}/${{ steps.names.outputs.image_namespace }}/arcane-ai:latest
+          cache-from: type=gha,scope=arcane-ai
+          cache-to: type=gha,mode=max,scope=arcane-ai
+
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production
+    steps:
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/arcane-ec2.pem
+          chmod 600 ~/.ssh/arcane-ec2.pem
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy with Docker Compose
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_PROJECT_DIR: ${{ secrets.EC2_PROJECT_DIR }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          ARCANE_API_IMAGE: ${{ needs.build-and-push.outputs.api_image }}
+          ARCANE_WORKER_IMAGE: ${{ needs.build-and-push.outputs.worker_image }}
+          ARCANE_AI_IMAGE: ${{ needs.build-and-push.outputs.ai_image }}
+        run: |
+          ssh -i ~/.ssh/arcane-ec2.pem "${EC2_USER}@${EC2_HOST}" \
+            "cd '${EC2_PROJECT_DIR}' && \
+             git pull && \
+             echo '${GHCR_TOKEN}' | docker login ghcr.io -u '${GHCR_USERNAME}' --password-stdin && \
+             ARCANE_API_IMAGE='${ARCANE_API_IMAGE}' \
+             ARCANE_WORKER_IMAGE='${ARCANE_WORKER_IMAGE}' \
+             ARCANE_AI_IMAGE='${ARCANE_AI_IMAGE}' \
+             docker compose --env-file .env.ec2 -f docker-compose.ec2.yml pull api-server worker-server ai-server && \
+             ARCANE_API_IMAGE='${ARCANE_API_IMAGE}' \
+             ARCANE_WORKER_IMAGE='${ARCANE_WORKER_IMAGE}' \
+             ARCANE_AI_IMAGE='${ARCANE_AI_IMAGE}' \
+             docker compose --env-file .env.ec2 -f docker-compose.ec2.yml up -d --no-build"

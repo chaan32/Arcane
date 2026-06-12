@@ -1,0 +1,248 @@
+@import "tailwindcss";
+
+@theme {
+  /* 컬러 토큰 */
+  /* 위에는 피그마에 따른 토큰 */
+  --color-background: #fff6fb;
+  --color-text-default: #69324b;
+
+  /* gray 토큰 */
+  --color-gray-100: #fffafd;
+  --color-gray-200: #fff0f7;
+  --color-gray-300: #ffe0ee;
+  --color-gray-400: #ffd1e3;
+  --color-gray-500: #bd7b98;
+  --color-gray-600: #a76886;
+
+  /* blue 토큰 */
+  --color-blue-100: #fff0f7;
+  --color-blue-200: #e75491;
+  --color-blue-300: #f45f9c;
+  --color-blue-400: #ff8fba;
+  --color-blue-500: #ffe0ee;
+
+  /* 내가 임시로 이름 지은거 - 작업 진행하면서 피그마에 맞게 바꿀 예정 */
+  --color-red: #d13639;
+  --color-gray-patchnote: #c4c7d1;
+  --color-gray-use: #adadad;
+  --color-gray-dummy: #d9d9d9;
+
+  /* 글꼴 토큰 : 사용하는거 먼저 */
+  /* 데스트탑 */
+  /* nav 1_default */
+  --text-d-nav1-def: 1rem;
+  --text-d-nav1-def--line-height: 1.5;
+  --text-d-nav1-def--font-weight: 600;
+
+  /* nav 1_selected */
+  --text-d-nav1-sel: 1rem;
+  --text-d-nav1-sel--line-height: 1.5;
+  --text-d-nav1-sel--font-weight: 750;
+
+  /* nav 2: 14px / 1.5 / Regular(400) */
+  --text-d-nav2: 0.875rem;
+  --text-d-nav2--line-height: 1.5;
+  --text-d-nav2--font-weight: 600;
+
+  /* body1 */
+  --text-d-body1: 1.25rem;
+  --text-d-body1--line-height: 1.875rem;
+  --text-d-body1--font-weight: 650;
+
+  /* body2 R*/
+  --text-d-body2-r: 1.125rem;
+  --text-d-body2-r--line-height: 1.6875rem;
+  --text-d-body2-r--font-weight: 600;
+
+  /* body2 */
+  --text-d-body2: 1.125rem;
+  --text-d-body2--line-height: 1.6875rem;
+  --text-d-body2--font-weight: 650;
+
+  /* body3 */
+  --text-d-body3: 1rem;
+  --text-d-body3--line-height: 1.5rem;
+  --text-d-body3--font-weight: 650;
+
+  /* body3 R */
+  --text-d-body3-r: 1rem;
+  --text-d-body3-r--line-height: 1.5rem;
+  --text-d-body3-r--font-weight: 600;
+
+  /* body4 */
+  --text-d-body4: 0.875rem;
+  --text-d-body4--line-height: 1.3125rem;
+  --text-d-body4--font-weight: 650;
+
+  /* body4 R*/
+  --text-d-body4-r: 0.875rem;
+  --text-d-body4-r--line-height: 1.3125rem;
+  --text-d-body4-r--font-weight: 600;
+
+  /* heading 4 */
+  --text-d-heading4: 1.5rem;
+  --text-d-heading4--line-height: 2.25rem;
+  --text-d-heading4--font-weight: 700;
+
+  /* cap 1 */
+  --text-d-cap1: 0.6875rem;
+  --text-d-cap1--line-height: 1.03125rem;
+  --text-d-cap1--font-weight: 600;
+
+  /* 아직 정의 안됨 */
+  --text-d-KR: 1.25rem;
+  --text-d-KR--line-height: 1.875rem;
+  --text-d-KR--font-weight: 650;
+
+  /* 모바일 */
+  /* btn */
+  --text-m-btn: 1rem;
+  --text-m-btn--line-height: 1.5;
+  --text-m-btn--font-weight: 750;
+
+  /* menu 1 */
+  --text-m-menu1: 1rem;
+  --text-m-menu1--line-height: 1.5;
+  --text-m-menu1--font-weight: 650;
+
+  /* menu 2 */
+  --text-m-menu2: 0.875rem;
+  --text-m-menu2--line-height: 1.5;
+  --text-m-menu2--font-weight: 600;
+
+  /* body2 */
+  --text-m-body2: 0.75rem;
+  --text-m-body2--line-height: 1.125rem;
+  --text-m-body2--font-weight: 650;
+
+  /* body3 */
+  --text-m-body3: 0.6875rem;
+  --text-m-body3--line-height: 1.5;
+  --text-m-body3--font-weight: 600;
+
+  /* body4 */
+  --text-m-body4: 0.5625rem;
+  --text-m-body4--line-height: 0.84375rem;
+  --text-m-body4--font-weight: 650;
+}
+
+@layer base {
+  html {
+    background: #fff6fb;
+  }
+
+  body {
+    @apply bg-background text-text-default;
+    font-family: var(--font-pretendard);
+    font-weight: 560;
+    letter-spacing: 0;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+  }
+}
+
+@layer components {
+  .guide-markdown {
+    color: #69324b;
+    font-weight: 700;
+    line-height: 1.85;
+    word-break: keep-all;
+  }
+
+  .guide-markdown > * + * {
+    margin-top: 1rem;
+  }
+
+  .guide-markdown h1,
+  .guide-markdown h2,
+  .guide-markdown h3 {
+    color: #69324b;
+    font-weight: 900;
+    line-height: 1.25;
+  }
+
+  .guide-markdown h1 {
+    margin-top: 0.5rem;
+    font-size: 2rem;
+  }
+
+  .guide-markdown h2 {
+    margin-top: 1.75rem;
+    border-bottom: 1px solid #ffe1ed;
+    padding-bottom: 0.55rem;
+    font-size: 1.55rem;
+  }
+
+  .guide-markdown h3 {
+    margin-top: 1.35rem;
+    font-size: 1.25rem;
+    color: #8f4f6c;
+  }
+
+  .guide-markdown p {
+    color: #7d4860;
+    font-size: 1rem;
+  }
+
+  .guide-markdown ul,
+  .guide-markdown ol {
+    border-radius: 1.25rem;
+    background: #fff7fb;
+    padding: 1rem 1.2rem 1rem 1.6rem;
+    color: #7d4860;
+  }
+
+  .guide-markdown ul {
+    list-style: disc;
+  }
+
+  .guide-markdown ol {
+    list-style: decimal;
+  }
+
+  .guide-markdown li + li {
+    margin-top: 0.45rem;
+  }
+
+  .guide-markdown blockquote {
+    border-left: 0.35rem solid #f45f9c;
+    border-radius: 1.1rem;
+    background: #fff0f7;
+    padding: 1rem 1.2rem;
+    color: #a76886;
+    font-weight: 800;
+  }
+
+  .guide-markdown pre {
+    overflow-x: auto;
+    border-radius: 1.25rem;
+    background: #69324b;
+    padding: 1rem 1.1rem;
+    color: #fffafd;
+    font-size: 0.9rem;
+    line-height: 1.7;
+  }
+
+  .guide-markdown pre code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+  }
+
+  .guide-markdown strong {
+    color: #e75491;
+    font-weight: 900;
+  }
+
+  .guide-markdown em {
+    color: #a76886;
+    font-style: italic;
+  }
+}

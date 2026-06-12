@@ -1,0 +1,121 @@
+.env.ec2
+.env.ec2.local
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.ec2.example
+!**/.env.example
+
+# Secrets / credentials
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.jks
+*.keystore
+secrets/
+**/secrets/
+
+# Logs
+logs/
+**/logs/
+*.log
+*.log.gz
+*.pid
+
+# Java / Gradle
+.gradle/
+**/.gradle/
+build/
+**/build/
+target/
+**/target/
+*.iml
+
+# Node / Next.js
+node_modules/
+**/node_modules/
+.next/
+.next-dev/
+**/.next/
+**/.next-dev/
+.turbo/
+**/.turbo/
+.vercel/
+**/.vercel/
+coverage/
+**/coverage/
+dist/
+**/dist/
+out/
+**/out/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python
+__pycache__/
+**/__pycache__/
+.venv/
+**/.venv/
+venv/
+**/venv/
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+**/.mypy_cache/
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+*.py[cod]
+
+# Local data / database dumps
+/data/
+ai/Arcane_AI/data/
+tmp/
+**/tmp/
+temp/
+**/temp/
+uploads/
+**/uploads/
+*.sql
+*.dump
+*.bak
+*.sqlite
+*.sqlite3
+*.db
+
+# Large generated ML/data artifacts
+*.joblib
+*.pkl
+*.pickle
+*.pt
+*.pth
+*.onnx
+*.h5
+*.csv
+*.tsv
+*.parquet
+
+# Local Docker overrides
+docker-compose.override.yml
+compose.override.yml
+
+# Legacy experimental servers
+/Arcane_ai/
+/model_server/
+/docs/Arcane_ai/
+
+# IDE
+.idea/
+**/.idea/
+.vscode/
+**/.vscode/
