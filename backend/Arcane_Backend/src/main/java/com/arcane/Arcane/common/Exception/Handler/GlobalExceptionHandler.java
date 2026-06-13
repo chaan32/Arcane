@@ -13,6 +13,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -114,10 +116,22 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<?> illegalState(IllegalStateException e) {
+        if (isMultipartSizeExceeded(e)) {
+            return uploadSizeExceeded(e);
+        }
+
         logHandledException(HttpStatus.FORBIDDEN, e);
         Map<String, Object> error = new HashMap<>();
         error.put("message", e.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    @ExceptionHandler({MaxUploadSizeExceededException.class, MultipartException.class})
+    public ResponseEntity<?> uploadSizeExceeded(Exception e) {
+        logHandledException(HttpStatus.PAYLOAD_TOO_LARGE, e);
+        Map<String, Object> error = new HashMap<>();
+        error.put("message", "이미지 파일 용량이 업로드 제한을 초과했습니다. 5MB 이하 이미지만 업로드해주세요.");
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(error);
     }
 
     @ExceptionHandler(CannotFoundChampion.class)
@@ -175,6 +189,15 @@ public class GlobalExceptionHandler {
                 ApiLogSupport.uri(request),
                 ApiLogSupport.exceptionName(exception),
                 ApiLogSupport.exceptionMessage(exception)
+        );
+    }
+
+    private boolean isMultipartSizeExceeded(IllegalStateException exception) {
+        String message = exception.getMessage();
+        return message != null && (
+                message.contains("FileSizeLimitExceededException")
+                        || message.contains("SizeLimitExceededException")
+                        || message.contains("maximum permitted size")
         );
     }
 

@@ -42,6 +42,10 @@ spring:
       port: ${SPRING_DATA_REDIS_PORT}
     mongodb:
       uri: ${SPRING_DATA_MONGODB_URI}
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:5MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:20MB}
   security:
     oauth2:
       client:
@@ -119,6 +123,13 @@ management:
 
 
 arcane:
+  storage:
+    s3:
+      bucket: ${AWS_S3_BUCKET:}
+      region: ${AWS_REGION:ap-northeast-2}
+      public-base-url: ${AWS_S3_PUBLIC_BASE_URL:}
+      guide-image-prefix: ${AWS_S3_GUIDE_IMAGE_PREFIX:guides}
+      max-file-size-bytes: ${AWS_S3_GUIDE_IMAGE_MAX_BYTES:5242880}
   elasticsearch:
     url: ${ELASTICSEARCH_URL:http://localhost:9200}
     guide-index: ${GUIDE_SEARCH_INDEX:arcane_guide_posts}
