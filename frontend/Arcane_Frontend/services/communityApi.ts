@@ -30,6 +30,13 @@ type BackendGuideUpload = {
   championId: number;
 };
 
+type BackendGuideImageUpload = {
+  url: string;
+  objectKey: string;
+  size: number;
+  contentType: string;
+};
+
 type BackendGuideSearchResponse = {
   engine: "database" | "elasticsearch";
   keyword: string;
@@ -240,6 +247,36 @@ export const createGuidePost = async (input: {
       content: input.markdown,
     }),
   });
+
+export const uploadGuideImage = async (file: File): Promise<BackendGuideImageUpload> => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await apiFetch("/api/v1/storage/guide-images", {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  const contentType = response.headers.get("content-type") ?? "";
+  const data = contentType.includes("application/json")
+    ? await response.json()
+    : await response.text();
+
+  if (!response.ok) {
+    if (isAuthErrorResponse(response.status, data)) {
+      signOutForAuthError();
+    }
+
+    const message =
+      typeof data === "object" && data !== null && "message" in data
+        ? String((data as { message?: unknown }).message)
+        : "이미지 업로드에 실패했습니다.";
+    throw new Error(message);
+  }
+
+  return data as BackendGuideImageUpload;
+};
 
 export const fetchGuideComments = async (guideId: string): Promise<GuideComment[]> => {
   const comments = await requestJson<BackendComment[]>(`/api/v1/comment/${guideId}/guide`, {

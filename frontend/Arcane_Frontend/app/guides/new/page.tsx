@@ -13,16 +13,15 @@ import MarkdownPreview from "@/components/guides/MarkdownPreview";
 import { useMockAuth } from "@/hooks/useMockAuth";
 import type { GuideChampion } from "@/types/community";
 import LoginDialog from "@/components/auth/LoginDialog";
-import { createGuidePost } from "@/services/communityApi";
+import { createGuidePost, uploadGuideImage } from "@/services/communityApi";
 
-const readFileAsDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+const MAX_GUIDE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_GUIDE_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
 
 export default function NewGuidePage() {
   const router = useRouter();
@@ -36,6 +35,7 @@ export default function NewGuidePage() {
     "## 핵심 운영\n\n- 라인전에서 가장 중요한 포인트\n- 첫 귀환 이후 아이템 선택\n\n## 콤보\n\n`Q` 이후 평타를 섞어주세요.\n\n## 주의할 점\n\n상대 정글 위치를 확인하기 전에는 무리하지 않습니다."
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [message, setMessage] = useState("");
 
   const canSubmit = useMemo(
@@ -45,26 +45,50 @@ export default function NewGuidePage() {
           selectedChampion &&
           title.trim().length >= 2 &&
           markdown.trim().length >= 10 &&
-          !isSubmitting
+          !isSubmitting &&
+          !isUploadingImages
       ),
-    [isSubmitting, markdown, selectedChampion, title, user]
+    [isSubmitting, isUploadingImages, markdown, selectedChampion, title, user]
   );
 
   const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) return;
 
-    const nextImageUrls = await Promise.all(files.map(readFileAsDataUrl));
-    setMarkdown((currentMarkdown) =>
-      [
-        currentMarkdown,
-        "",
-        ...nextImageUrls.map(
-          (imageUrl, index) => `![공략 이미지 ${index + 1}](${imageUrl})`
-        ),
-      ].join("\n")
+    const invalidFile = files.find(
+      (file) =>
+        !ALLOWED_GUIDE_IMAGE_TYPES.has(file.type) ||
+        file.size > MAX_GUIDE_IMAGE_SIZE_BYTES
     );
-    event.target.value = "";
+
+    if (invalidFile) {
+      setMessage("이미지는 png, jpg, webp, gif 형식으로 5MB 이하만 업로드할 수 있습니다.");
+      input.value = "";
+      return;
+    }
+
+    setIsUploadingImages(true);
+    setMessage("이미지를 업로드하는 중입니다.");
+
+    try {
+      const uploadedImages = await Promise.all(files.map(uploadGuideImage));
+      setMarkdown((currentMarkdown) =>
+        [
+          currentMarkdown,
+          "",
+          ...uploadedImages.map(
+            (image, index) => `![공략 이미지 ${index + 1}](${image.url})`
+          ),
+        ].join("\n")
+      );
+      setMessage(`${uploadedImages.length}개 이미지가 추가되었습니다.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "이미지 업로드에 실패했습니다.");
+    } finally {
+      setIsUploadingImages(false);
+      input.value = "";
+    }
   };
 
   const handleItemInsert = (item: GuideItem) => {
@@ -161,12 +185,13 @@ export default function NewGuidePage() {
               <div className="flex flex-wrap items-center gap-2">
                 <label className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-full border border-[#ffd1e3] bg-[#fff0f7] px-5 text-sm font-black text-[#e75491] transition-colors hover:bg-[#ffe0ee]">
                   <ImagePlus className="h-4 w-4" />
-                  이미지 추가
+                  {isUploadingImages ? "업로드 중" : "이미지 추가"}
                   <input
                     type="file"
                     accept="image/*"
                     multiple
                     onChange={handleImageUpload}
+                    disabled={isUploadingImages}
                     className="hidden"
                   />
                 </label>
