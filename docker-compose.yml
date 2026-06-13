@@ -187,6 +187,8 @@ services:
       ELASTICSEARCH_URL: http://elasticsearch:9200
       OAUTH2_SUCCESS_REDIRECT_URI: http://localhost:3000/oauth/callback
       OAUTH2_FAILURE_REDIRECT_URI: http://localhost:3000/oauth/callback
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 5MB
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 20MB
     volumes:
       - ./backend/Arcane_Backend/logs:/app/logs
     depends_on:
