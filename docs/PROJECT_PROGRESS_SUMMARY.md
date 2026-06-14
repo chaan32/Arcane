@@ -2,6 +2,9 @@
 
 작성일: 2026-05-29
 
+> 이 문서는 프로젝트 초기 이관/정리 단계의 기록이다.
+> 현재 운영 기준 문서는 [PROJECT_STATUS.md](PROJECT_STATUS.md), [OPERATIONS_HISTORY.md](OPERATIONS_HISTORY.md), [DEPLOYMENT_VERCEL_EC2.md](DEPLOYMENT_VERCEL_EC2.md)를 기준으로 한다.
+
 ## 1. 현재 프로젝트 전환 상황
 
 기존 organization 레포에 있던 Nexushub 코드를 개인 레포 기준으로 분리해 Arcane 프로젝트로 정리하는 중이다.
@@ -190,4 +193,3 @@ rootProject.name = 'Arcane'
 5. DB/Redis Docker + 백엔드 로컬 + 프론트 로컬 실행 흐름을 안정화한다.
 6. 백엔드가 정상 실행되면 실제 API 응답과 성능 병목을 다시 측정한다.
 7. 프론트는 API URL 하드코딩을 제거하고 공통 API client로 정리한다.
-

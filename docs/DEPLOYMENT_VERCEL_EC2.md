@@ -39,6 +39,12 @@ NEXT_PUBLIC_API_URL=https://api.your-domain.com
 NEXT_PUBLIC_DDRAGON_VERSION=latest
 ```
 
+Arcane 운영 환경에서는 아래 값을 사용한다.
+
+```properties
+NEXT_PUBLIC_API_URL=https://api.ar-cane.site
+```
+
 도메인이 없다면 임시로 아래처럼 EC2 public IP를 직접 사용할 수 있다.
 
 ```properties
@@ -78,6 +84,15 @@ Vercel preview URL까지 허용하려면 comma로 추가한다.
 
 ```properties
 APP_CORS_ALLOWED_ORIGIN_PATTERNS=https://your-arcane-frontend.vercel.app,https://*.vercel.app
+```
+
+Arcane 운영 환경에서는 아래 프론트 origin을 기준으로 설정한다.
+
+```properties
+FRONTEND_ORIGIN=https://www.ar-cane.site
+APP_CORS_ALLOWED_ORIGIN_PATTERNS=https://www.ar-cane.site
+OAUTH2_SUCCESS_REDIRECT_URI=https://www.ar-cane.site/oauth/callback
+OAUTH2_FAILURE_REDIRECT_URI=https://www.ar-cane.site/oauth/callback
 ```
 
 ## 4. EC2 실행
@@ -149,6 +164,27 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
+설정 반영 후 WebSocket handshake를 아래처럼 검증한다.
+
+```bash
+curl -i --http1.1 -N \
+  -H "Origin: https://www.ar-cane.site" \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+  -H "Sec-WebSocket-Version: 13" \
+  https://api.ar-cane.site/ws/chat
+```
+
+정상 응답은 아래와 같다.
+
+```text
+HTTP/1.1 101
+Upgrade: websocket
+```
+
+만약 `302 Location: https://api.ar-cane.site/login`이 나오면 Spring Security가 WebSocket handshake를 로그인 필요 요청으로 처리한 것이다. 이 경우 API 서버의 Security 설정에서 `/ws/**`가 permit 처리되어 있는지 확인한다.
+
 ## 6. 로컬 개발과의 차이
 
 - `docker-compose.yml`: 로컬에서 프론트까지 한 번에 띄우는 개발용 compose
@@ -168,3 +204,4 @@ sudo systemctl reload nginx
 - Redis volume이 유지되는지 확인
 - MySQL/MongoDB volume이 유지되는지 확인
 - Kafka bootstrap server는 컨테이너 내부에서 `kafka:19092`를 쓰는지 확인
+- Riot Production API Key 검증 파일이 `https://www.ar-cane.site/riot.txt`에서 열리는지 확인

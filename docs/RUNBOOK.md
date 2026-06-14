@@ -2,6 +2,8 @@
 
 작성일: 2026-06-04
 
+> 로컬 개발 기준 문서다. 현재 운영 배포 기준은 [DEPLOYMENT_VERCEL_EC2.md](DEPLOYMENT_VERCEL_EC2.md), [GITHUB_ACTIONS_CICD.md](GITHUB_ACTIONS_CICD.md)를 함께 본다.
+
 ## 실행 구성
 
 개발 중 권장 구성:
@@ -257,3 +259,103 @@ npm run dev
 10. 채팅 송수신
 11. AI 서버 `/health`
 12. 백엔드 Python random endpoint
+
+## 8. 운영 배포 확인
+
+운영 URL:
+
+```text
+Frontend: https://www.ar-cane.site
+API: https://api.ar-cane.site
+```
+
+EC2 프로젝트 경로:
+
+```bash
+cd /home/ubuntu/opt/arcane/Arcane
+```
+
+컨테이너 상태:
+
+```bash
+docker compose --env-file .env.ec2 -f docker-compose.ec2.yml ps
+```
+
+API 로그:
+
+```bash
+docker logs -f arcane-api
+```
+
+Worker 로그:
+
+```bash
+docker logs -f arcane-worker
+```
+
+API health:
+
+```bash
+curl https://api.ar-cane.site/actuator/health
+```
+
+Riot site verification:
+
+```bash
+curl https://www.ar-cane.site/riot.txt
+```
+
+## 9. WebSocket 운영 점검
+
+Nginx 설정 확인:
+
+```bash
+sudo nginx -T | grep -n "server_name api.ar-cane.site" -A30
+```
+
+필수 설정:
+
+```nginx
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
+```
+
+설정 검증:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+WebSocket handshake 확인:
+
+```bash
+curl -i --http1.1 -N \
+  -H "Origin: https://www.ar-cane.site" \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+  -H "Sec-WebSocket-Version: 13" \
+  https://api.ar-cane.site/ws/chat
+```
+
+정상 응답:
+
+```text
+HTTP/1.1 101
+Upgrade: websocket
+```
+
+## 10. CI/CD 수동 확인
+
+GitHub Actions에서 실제 배포는 `deploy-ec2.yml`을 실행한다.
+
+- `ci.yml`: compile/build 검증
+- `deploy-ec2.yml`: Docker image build, GHCR push, EC2 deploy
+
+배포 후 EC2에서 image 갱신 여부를 확인한다.
+
+```bash
+docker images | grep arcane
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
+```
