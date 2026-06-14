@@ -111,7 +111,45 @@ EC2 보안 그룹에서는 최소한 API 포트만 외부에 열어둔다.
 - `8080`: Vercel에서 호출할 API
 - `3001`, `5601`, `9090`, `9200`, `3307`, `6379`, `27017`, `9092` 등은 기본적으로 외부 개방하지 않는다.
 
-## 5. 로컬 개발과의 차이
+## 5. Nginx HTTPS / WebSocket 프록시
+
+EC2에서 `api.ar-cane.site`를 Nginx로 HTTPS 프록시할 때는 WebSocket Upgrade 헤더를 반드시 넘겨야 한다.
+이 설정이 빠지면 Spring Boot 로그에 아래 오류가 5초 간격으로 반복될 수 있다.
+
+```text
+Handshake failed due to invalid Upgrade header: null
+```
+
+예시 설정은 `docker/nginx/api.ar-cane.site.conf.example`에 있다.
+
+핵심 설정은 아래와 같다.
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_read_timeout 3600;
+    proxy_send_timeout 3600;
+}
+```
+
+EC2에서 설정 반영 후에는 아래 명령으로 검증하고 재로드한다.
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## 6. 로컬 개발과의 차이
 
 - `docker-compose.yml`: 로컬에서 프론트까지 한 번에 띄우는 개발용 compose
 - `docker-compose.ec2.yml`: EC2에서 프론트를 제외하고 백엔드/인프라 이미지를 실행하는 배포용 compose
@@ -119,7 +157,7 @@ EC2 보안 그룹에서는 최소한 API 포트만 외부에 열어둔다.
 - `frontend/Arcane_Frontend/.env.example`: Vercel 환경변수 예시
 - `.env.ec2.example`: EC2 Docker Compose 환경변수 예시
 
-## 6. 배포 체크리스트
+## 7. 배포 체크리스트
 
 - Vercel `NEXT_PUBLIC_API_URL`이 EC2 API 주소를 바라보는지 확인
 - EC2 `.env.ec2`의 `APP_CORS_ALLOWED_ORIGIN_PATTERNS`에 Vercel origin이 포함됐는지 확인

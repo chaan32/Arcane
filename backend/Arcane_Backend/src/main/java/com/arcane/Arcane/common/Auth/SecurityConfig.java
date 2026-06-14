@@ -19,6 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -54,6 +55,7 @@ public class SecurityConfig {
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/ws/**")).permitAll()
                         .requestMatchers(
                                 "/oauth2/**",
                                 "/login/oauth2/**",
@@ -81,8 +83,6 @@ public class SecurityConfig {
                                 "/static/**",
                                 "/api/v1/tune/**",
                                 "/favicon.ico",
-                                "/ws/chat",
-                                "/ws/chat/**",
                                 "/api/waiting",
                                 "/api/waiting/**",
                                 "/actuator",
