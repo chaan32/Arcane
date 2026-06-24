@@ -31,15 +31,19 @@ public final class ReadableActivityLog {
         boolean failed = throwable != null || status >= 400;
         boolean rateLimited = status == 429 || containsRateLimitMessage(throwable == null ? null : throwable.getMessage());
         String riotId = riotIdFromQuery(query).orElse("해당 소환사");
+        String actor = actorLabel(ApiLogSupport.user(request));
 
-        return sanitize(describe(uri, query, riotId, failed, rateLimited));
+        return sanitize(describe(uri, request.getMethod(), query, riotId, actor, failed, rateLimited));
     }
 
     public static Optional<Map<String, Object>> parse(String line, String source) {
         Map<String, String> fields = fields(line);
         String uri = fields.get("uri");
 
-        if (uri == null || line.contains("[요청 시작]") || NOISY_ADMIN_URIS.contains(uri)) {
+        if (uri == null
+                || line.contains("[요청 시작]")
+                || NOISY_ADMIN_URIS.contains(uri)
+                || !isBusinessActivity(uri, fields.get("method"))) {
             return Optional.empty();
         }
 
@@ -49,15 +53,13 @@ public final class ReadableActivityLog {
         boolean failed = line.contains("[요청 실패]") || (status != null && status >= 400);
         boolean rateLimited = status != null && status == 429 || containsRateLimitMessage(line) || containsRateLimitMessage(message);
         String riotId = riotIdFromQuery(fields.get("query")).orElse("해당 소환사");
-        String activity = fields.get("activity");
+        String actor = actorLabel(fields.get("user"));
 
         Map<String, Object> entry = new LinkedHashMap<>();
         entry.put("occurredAt", extract(TIMESTAMP_PATTERN, line).orElse(null));
         entry.put("level", extract(LEVEL_PATTERN, line).orElse(failed ? "ERROR" : "INFO"));
         entry.put("category", category(uri));
-        entry.put("message", activity == null || activity.isBlank()
-                ? describe(uri, fields.get("query"), riotId, failed, rateLimited)
-                : activity.trim());
+        entry.put("message", describe(uri, fields.get("method"), fields.get("query"), riotId, actor, failed, rateLimited));
         entry.put("detail", detail(uri, fields, message));
         entry.put("status", status);
         entry.put("elapsedMs", elapsedMs);
@@ -68,21 +70,53 @@ public final class ReadableActivityLog {
         return Optional.of(entry);
     }
 
-    private static String describe(String uri, String query, String riotId, boolean failed, boolean rateLimited) {
-        ActionPhrase action = actionPhrase(uri, query, riotId);
+    private static boolean isBusinessActivity(String uri, String method) {
+        if (uri.startsWith("/api/v1/summoner/matches")) {
+            return true;
+        }
+
+        if (uri.startsWith("/api/v1/admin/ranking-update")
+                || uri.startsWith("/api/v1/admin/dataset-collection")
+                || uri.startsWith("/api/v1/admin/champion-analysis")
+                || uri.startsWith("/api/v1/admin/game-data-sync")) {
+            return true;
+        }
+
+        if (uri.startsWith("/api/v1/storage/guide-images")) {
+            return true;
+        }
+
+        if (uri.startsWith("/api/v1/strategy")
+                || uri.startsWith("/api/v1/comment")
+                || uri.startsWith("/api/v1/chat")) {
+            return isMutatingMethod(method);
+        }
+
+        return false;
+    }
+
+    private static boolean isMutatingMethod(String method) {
+        return "POST".equalsIgnoreCase(method)
+                || "PUT".equalsIgnoreCase(method)
+                || "PATCH".equalsIgnoreCase(method)
+                || "DELETE".equalsIgnoreCase(method);
+    }
+
+    private static String describe(String uri, String method, String query, String riotId, String actor, boolean failed, boolean rateLimited) {
+        ActionPhrase action = actionPhrase(uri, method, query, riotId);
 
         if (!failed) {
-            return action.success();
+            return actor + " " + action.success();
         }
 
         if (rateLimited) {
-            return action.failureStem() + " Riot API 요청 제한으로 실패했습니다.";
+            return actor + " " + action.failureStem() + " Riot API 요청 제한으로 실패했습니다.";
         }
 
-        return action.failureStem() + " 실패했습니다.";
+        return actor + " " + action.failureStem() + " 실패했습니다.";
     }
 
-    private static ActionPhrase actionPhrase(String uri, String query, String riotId) {
+    private static ActionPhrase actionPhrase(String uri, String method, String query, String riotId) {
         if (uri == null) {
             return new ActionPhrase("요청을 처리했습니다.", "요청을 처리하다가");
         }
@@ -127,15 +161,30 @@ public final class ReadableActivityLog {
         }
 
         if (uri.startsWith("/api/v1/strategy")) {
-            return new ActionPhrase("공략 글을 처리했습니다.", "공략 글을 처리하다가");
+            if (uri.startsWith("/api/v1/strategy/upload")) {
+                return new ActionPhrase("공략 글을 작성했습니다.", "공략 글을 작성하다가");
+            }
+            if (uri.startsWith("/api/v1/strategy/edit")) {
+                return new ActionPhrase("공략 글을 수정했습니다.", "공략 글을 수정하다가");
+            }
+            if (uri.startsWith("/api/v1/strategy/delete")) {
+                return new ActionPhrase("공략 글을 삭제했습니다.", "공략 글을 삭제하다가");
+            }
+            return new ActionPhrase("공략 글을 변경했습니다.", "공략 글을 변경하다가");
         }
 
         if (uri.startsWith("/api/v1/comment")) {
-            return new ActionPhrase("댓글을 처리했습니다.", "댓글을 처리하다가");
+            if ("DELETE".equalsIgnoreCase(method) || uri.endsWith("/delete")) {
+                return new ActionPhrase("댓글을 삭제했습니다.", "댓글을 삭제하다가");
+            }
+            if ("PATCH".equalsIgnoreCase(method) || uri.endsWith("/edit")) {
+                return new ActionPhrase("댓글을 수정했습니다.", "댓글을 수정하다가");
+            }
+            return new ActionPhrase("댓글을 작성하거나 수정했습니다.", "댓글을 작성하거나 수정하다가");
         }
 
         if (uri.startsWith("/api/v1/chat")) {
-            return new ActionPhrase("채팅 요청을 처리했습니다.", "채팅 요청을 처리하다가");
+            return new ActionPhrase("채팅 메시지를 보냈습니다.", "채팅 메시지를 보내다가");
         }
 
         if (uri.startsWith("/api/v1/storage/guide-images")) {
@@ -158,10 +207,11 @@ public final class ReadableActivityLog {
 
     private static String detail(String uri, Map<String, String> fields, String message) {
         StringBuilder detail = new StringBuilder();
-        appendDetail(detail, "method", fields.get("method"));
-        appendDetail(detail, "uri", uri);
-        appendDetail(detail, "query", fields.get("query"));
-        appendDetail(detail, "message", message);
+        appendDetail(detail, "사용자", fields.get("user"));
+        riotIdFromQuery(fields.get("query")).ifPresent(riotId -> appendDetail(detail, "대상", riotId));
+        appendDetail(detail, "처리시간", elapsedLabel(fields.get("elapsedMs")));
+        appendDetail(detail, "상태", fields.get("status"));
+        appendDetail(detail, "오류", message);
         return detail.toString();
     }
 
@@ -270,6 +320,27 @@ public final class ReadableActivityLog {
                 || lowerValue.contains("ratelimit")
                 || value.contains("요청 제한")
                 || value.contains("리미트");
+    }
+
+    private static String actorLabel(String user) {
+        String normalized = blankToNull(user);
+        if (normalized == null || normalized.equals("-") || normalized.equalsIgnoreCase("anonymousUser")) {
+            return "비로그인 사용자가";
+        }
+
+        if (normalized.length() > 28) {
+            return normalized.substring(0, 24) + "... 사용자가";
+        }
+
+        return normalized + " 사용자가";
+    }
+
+    private static String elapsedLabel(String elapsedMs) {
+        String normalized = blankToNull(elapsedMs);
+        if (normalized == null || normalized.equals("-")) {
+            return null;
+        }
+        return normalized + "ms";
     }
 
     private static String sanitize(String value) {
