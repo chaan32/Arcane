@@ -46,6 +46,7 @@ public class ApiLoggingInterceptor implements HandlerInterceptor {
         restoreTraceId(request);
         long elapsedMs = elapsedMs(request);
         int status = response.getStatus();
+        String activity = ReadableActivityLog.describe(request, status, exception);
 
         try {
             if (exception == null && status < 400) {
@@ -58,6 +59,7 @@ public class ApiLoggingInterceptor implements HandlerInterceptor {
                                 + " | status=" + status
                                 + " | elapsedMs=" + elapsedMs
                                 + " | user=" + ApiLogSupport.user(request)
+                                + " | activity=" + activity
                 ));
                 return;
             }
@@ -74,6 +76,7 @@ public class ApiLoggingInterceptor implements HandlerInterceptor {
                                         + " | user=" + ApiLogSupport.user(request)
                                         + " | exception=" + ApiLogSupport.exceptionName(exception)
                                         + " | message=" + ApiLogSupport.exceptionMessage(exception)
+                                        + " | activity=" + activity
                         ),
                         exception
                 );
@@ -91,6 +94,7 @@ public class ApiLoggingInterceptor implements HandlerInterceptor {
                             + " | user=" + ApiLogSupport.user(request)
                             + " | exception=" + ApiLogSupport.exceptionName(exception)
                             + " | message=" + ApiLogSupport.exceptionMessage(exception)
+                            + " | activity=" + activity
             ));
         } finally {
             MDC.remove(TRACE_ID_MDC_KEY);

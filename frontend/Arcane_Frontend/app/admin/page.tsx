@@ -24,6 +24,7 @@ import { getApiUrl } from "@/constants/api";
 import {
   AdminDashboard,
   AdminLogs,
+  AdminReadableLogEntry,
   fetchAdminDashboard,
   fetchAdminLogs,
   requestChampionAnalysis,
@@ -73,6 +74,33 @@ const formatDateTime = (value: string | null) => {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+};
+
+const readableLogLevelClass = (level?: string) => {
+  switch (level) {
+    case "ERROR":
+      return "bg-[#ffe4e8] text-[#c0392b] ring-[#ffc6ce]";
+    case "WARN":
+      return "bg-[#fff1dc] text-[#d66b12] ring-[#ffd8a8]";
+    default:
+      return "bg-[#e9f8f1] text-[#25825c] ring-[#c8ecd9]";
+  }
+};
+
+const readableLogSourceLabel = (source?: string) => {
+  if (source === "worker") return "Worker";
+  return "API";
+};
+
+const formatActivityMeta = (activity: AdminReadableLogEntry) => {
+  const parts = [
+    activity.status !== null ? `status ${activity.status}` : null,
+    activity.elapsedMs !== null ? `${activity.elapsedMs}ms` : null,
+    activity.user ? `user ${activity.user}` : null,
+    activity.traceId ? `trace ${activity.traceId}` : null,
+  ].filter(Boolean);
+
+  return parts.length ? parts.join(" · ") : "추가 메타데이터 없음";
 };
 
 const clampPercent = (value?: number | null) => {
@@ -129,6 +157,7 @@ export default function AdminPage() {
   const [datasetRankingKey, setDatasetRankingKey] = useState("ranking:all");
   const [datasetRankerLimit, setDatasetRankerLimit] = useState(500);
   const [datasetMatchCount, setDatasetMatchCount] = useState(15);
+  const readableActivities = logs?.activities ?? [];
 
   const isClearlyNotAdmin = user?.role === "USER";
 
@@ -1027,6 +1056,60 @@ export default function AdminPage() {
               )}
             </div>
 
+            <div className="mt-5 rounded-[1.5rem] bg-white/90 p-4 ring-1 ring-[#ffd1e3]/70">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black text-[#a76886]">읽기 쉬운 활동 로그</p>
+                  <h3 className="mt-1 text-lg font-black text-[#3d1b2b]">사람이 읽는 운영 이벤트</h3>
+                </div>
+                <span className="rounded-full bg-[#fff7fb] px-3 py-1 text-xs font-black text-[#e75491] ring-1 ring-[#ffd1e3]">
+                  최근 {readableActivities.length}건
+                </span>
+              </div>
+
+              <div className="mt-4 max-h-[20rem] space-y-2 overflow-auto pr-1">
+                {readableActivities.length ? (
+                  readableActivities
+                    .slice(-40)
+                    .reverse()
+                    .map((activity, index) => (
+                      <div
+                        key={`${activity.traceId ?? activity.occurredAt ?? index}-${index}`}
+                        className="rounded-[1.1rem] bg-[#fff7fb] px-4 py-3 ring-1 ring-[#ffd1e3]/80"
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-[0.7rem] font-black">
+                          <span className={`rounded-full px-2 py-0.5 ring-1 ${readableLogLevelClass(activity.level)}`}>
+                            {activity.level}
+                          </span>
+                          <span className="rounded-full bg-white px-2 py-0.5 text-[#e75491] ring-1 ring-[#ffd1e3]">
+                            {readableLogSourceLabel(activity.source)}
+                          </span>
+                          <span className="rounded-full bg-white px-2 py-0.5 text-[#a76886] ring-1 ring-[#ffd1e3]">
+                            {activity.category}
+                          </span>
+                          <span className="text-[#bd7b98]">{activity.occurredAt ?? "시간 정보 없음"}</span>
+                        </div>
+                        <p className="mt-2 break-keep text-sm font-black text-[#3d1b2b]">{activity.message}</p>
+                        {activity.detail ? (
+                          <p className="mt-1 break-all text-xs font-bold text-[#a76886]">{activity.detail}</p>
+                        ) : null}
+                        <p className="mt-1 break-all text-[0.7rem] font-bold text-[#bd7b98]">
+                          {formatActivityMeta(activity)}
+                        </p>
+                      </div>
+                    ))
+                ) : (
+                  <div className="rounded-[1rem] bg-[#fff7fb] px-4 py-6 text-center text-sm font-bold text-[#a76886]">
+                    아직 사람이 읽을 수 있는 활동 로그가 없습니다. 신규 요청부터 더 자세히 표시됩니다.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-between gap-3 px-1">
+              <p className="text-xs font-black text-[#a76886]">원본 로그</p>
+              <p className="text-xs font-bold text-[#bd7b98]">문제 추적용 상세 로그</p>
+            </div>
             <div className="mt-5 max-h-[28rem] overflow-auto rounded-[1.5rem] bg-[#281421] p-4 text-xs font-bold leading-6 text-[#ffe6f1] shadow-inner">
               {logs?.lines.length ? (
                 logs.lines.map((line, index) => (

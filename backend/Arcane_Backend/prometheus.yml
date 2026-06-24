@@ -3,8 +3,8 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  # Spring Boot를 IntelliJ/로컬에서 실행하는 현재 구조 기준이다.
-  # 백엔드 앱을 Docker profile로 실행하면 target을 arcane-app:8080으로 바꾸면 된다.
+  # Spring Boot를 IntelliJ/로컬에서 실행하고 Prometheus만 Docker로 실행하는 구조 기준이다.
+  # 전체 서비스를 Docker Compose로 실행할 때는 루트의 docker/prometheus.yml을 사용한다.
   - job_name: arcane-backend
     metrics_path: /actuator/prometheus
     static_configs:
@@ -12,6 +12,16 @@ scrape_configs:
           - host.docker.internal:8080
         labels:
           application: Arcane
+          service: api
+
+  - job_name: arcane-worker
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - host.docker.internal:7749
+        labels:
+          application: Arcane
+          service: worker
 
   - job_name: prometheus
     static_configs:

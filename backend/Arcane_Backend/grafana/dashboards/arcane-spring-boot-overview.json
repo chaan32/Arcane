@@ -87,12 +87,12 @@
       "pluginVersion": "11.5.2",
       "targets": [
         {
-          "expr": "up{job=\"arcane-backend\"}",
-          "legendFormat": "Arcane Backend",
+          "expr": "up{job=~\"arcane-api|arcane-worker|arcane-backend\"}",
+          "legendFormat": "{{job}}",
           "refId": "A"
         }
       ],
-      "title": "Backend Status",
+      "title": "Service Status",
       "type": "stat"
     },
     {
@@ -139,8 +139,8 @@
       "pluginVersion": "11.5.2",
       "targets": [
         {
-          "expr": "process_uptime_seconds{job=\"arcane-backend\"}",
-          "legendFormat": "uptime",
+          "expr": "process_uptime_seconds{job=~\"arcane-api|arcane-worker|arcane-backend\"}",
+          "legendFormat": "{{job}}",
           "refId": "A"
         }
       ],
@@ -198,7 +198,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"arcane-backend\"}[1m]))",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=~\"arcane-api|arcane-worker|arcane-backend\"}[1m]))",
           "legendFormat": "requests/sec",
           "refId": "A"
         }
@@ -257,7 +257,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_server_requests_seconds_sum{job=\"arcane-backend\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"arcane-backend\"}[5m]))",
+          "expr": "sum(rate(http_server_requests_seconds_sum{job=~\"arcane-api|arcane-worker|arcane-backend\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=~\"arcane-api|arcane-worker|arcane-backend\"}[5m]))",
           "legendFormat": "avg latency",
           "refId": "A"
         }
@@ -316,7 +316,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (area) (jvm_memory_used_bytes{job=\"arcane-backend\"})",
+          "expr": "sum by (area) (jvm_memory_used_bytes{job=~\"arcane-api|arcane-worker|arcane-backend\"})",
           "legendFormat": "{{area}}",
           "refId": "A"
         }
@@ -375,8 +375,8 @@
       },
       "targets": [
         {
-          "expr": "jvm_threads_live_threads{job=\"arcane-backend\"}",
-          "legendFormat": "live threads",
+          "expr": "jvm_threads_live_threads{job=~\"arcane-api|arcane-worker|arcane-backend\"}",
+          "legendFormat": "{{job}} live threads",
           "refId": "A"
         }
       ],

@@ -10,6 +10,16 @@ scrape_configs:
           - api-server:8080
         labels:
           application: Arcane
+          service: api
+
+  - job_name: arcane-worker
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - worker-server:7749
+        labels:
+          application: Arcane
+          service: worker
 
   - job_name: prometheus
     static_configs:

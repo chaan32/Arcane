@@ -121,6 +121,8 @@ services:
     depends_on:
       api-server:
         condition: service_started
+      worker-server:
+        condition: service_started
 
   grafana:
     image: grafana/grafana:11.5.2
@@ -189,8 +191,11 @@ services:
       OAUTH2_FAILURE_REDIRECT_URI: http://localhost:3000/oauth/callback
       SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 5MB
       SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 20MB
+      ARCANE_ADMIN_API_LOG_DIR: /app/logs
+      ARCANE_ADMIN_WORKER_LOG_DIR: /app/worker-logs
     volumes:
       - ./backend/Arcane_Backend/logs:/app/logs
+      - ./worker/logs:/app/worker-logs:ro
     depends_on:
       arcane-db:
         condition: service_healthy

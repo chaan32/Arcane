@@ -55,6 +55,18 @@ server:
   address: 0.0.0.0
   port : 7749
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: ArcaneWorker
+  endpoint:
+    health:
+      show-details: always
+
 
 riot:
   # 이게 진짜임

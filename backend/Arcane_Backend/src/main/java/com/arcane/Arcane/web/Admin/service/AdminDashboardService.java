@@ -9,6 +9,7 @@ import com.arcane.Arcane.common.Kafka.service.DatasetCollectJobStatusService;
 import com.arcane.Arcane.common.Kafka.service.GameDataSyncJobStatusService;
 import com.arcane.Arcane.common.Kafka.service.RankingUpdateJobStatusService;
 import com.arcane.Arcane.common.Logging.ApiLogSupport;
+import com.arcane.Arcane.common.Logging.ReadableActivityLog;
 import com.arcane.Arcane.riot.Ranker.Sheduler.RankerScheduler;
 import com.arcane.Arcane.web.User.domain.User;
 import com.arcane.Arcane.web.User.service.UserService;
@@ -255,6 +256,7 @@ public class AdminDashboardService {
             response.put("selectedFileName", null);
             response.put("filePath", logDirectoryLabel());
             response.put("lines", List.of());
+            response.put("activities", List.of());
             response.put("message", "아직 로그 파일이 생성되지 않았습니다.");
             log.warn(ApiLogSupport.api(
                     "관리자 로그 조회",
@@ -273,7 +275,9 @@ public class AdminDashboardService {
         try {
             List<String> allLines = readLogLines(selectedPath);
             int fromIndex = Math.max(0, allLines.size() - safeLines);
-            response.put("lines", allLines.subList(fromIndex, allLines.size()));
+            List<String> selectedLines = allLines.subList(fromIndex, allLines.size());
+            response.put("lines", selectedLines);
+            response.put("activities", readableActivities(selectedLines, logSource(selectedPath.getFileName().toString())));
             response.put("message", "OK");
             log.info(ApiLogSupport.api(
                     "관리자 로그 조회",
@@ -286,6 +290,7 @@ public class AdminDashboardService {
             return response;
         } catch (Exception e) {
             response.put("lines", List.of());
+            response.put("activities", List.of());
             response.put("message", "로그 파일을 읽지 못했습니다: " + e.getMessage());
             log.error(ApiLogSupport.api(
                             "관리자 로그 조회",
@@ -297,6 +302,13 @@ public class AdminDashboardService {
             );
             return response;
         }
+    }
+
+    private List<Map<String, Object>> readableActivities(List<String> lines, String source) {
+        return lines.stream()
+                .map(line -> ReadableActivityLog.parse(line, source))
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     private List<Path> listLogFilePaths() {

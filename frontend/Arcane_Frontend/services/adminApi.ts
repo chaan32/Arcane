@@ -148,7 +148,21 @@ export interface AdminLogs {
   filePath: string;
   maxLines: number;
   lines: string[];
+  activities?: AdminReadableLogEntry[];
   message: string;
+}
+
+export interface AdminReadableLogEntry {
+  occurredAt: string | null;
+  level: "INFO" | "WARN" | "ERROR" | string;
+  category: string;
+  message: string;
+  detail: string;
+  status: number | null;
+  elapsedMs: number | null;
+  user: string | null;
+  traceId: string | null;
+  source: "api" | "worker" | string;
 }
 
 export interface AdminLogFile {
