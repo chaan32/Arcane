@@ -80,6 +80,8 @@ const getMatchTone = (isWin: boolean) =>
         muted: "text-[#6f8aad]",
         scoreBox: "bg-[#edf5ff]",
         scoreText: "text-[#2f80ed]",
+        chip: "border-[#bdd8fb] bg-white/75 text-[#4e79ad]",
+        resultChip: "border-[#9dc8fb] bg-[#e8f3ff] text-[#2f80ed]",
         expand: "bg-[#e8f2ff] text-[#2f80ed] hover:bg-[#dbeaff]",
       }
     : {
@@ -89,6 +91,8 @@ const getMatchTone = (isWin: boolean) =>
         muted: "text-[#9b6a7a]",
         scoreBox: "bg-[#fff0f4]",
         scoreText: "text-[#ff4f73]",
+        chip: "border-[#ffc5d2] bg-white/75 text-[#9b6a7a]",
+        resultChip: "border-[#ffaac0] bg-[#ffe8ee] text-[#ff4f73]",
         expand: "bg-[#ffe8ee] text-[#ff4f73] hover:bg-[#ffdce6]",
       };
 
@@ -106,39 +110,45 @@ export const MatchCard = memo(function MatchCard({
     [match.participants]
   );
   const isMyTeamOne = TEAM_ONE_PLAYERS.some(
-    (index) => getParticipant(match.participants, index).puuid === match.myData.puuid
+    (index) =>
+      getParticipant(match.participants, index).puuid === match.myData.puuid
   );
   const team1Lost = isMyTeamOne ? !match.myData.win : match.myData.win;
   const myAiScoreRank = getAiScoreRank(allParticipants, match.myData.puuid);
   const matchTone = getMatchTone(match.myData.win);
   const gameVersion = match.metaData.gameVersion;
+  const hasLegendaryAiScore = match.myData.ourScore >= 95;
 
   return (
     <div
       className={`flex flex-col overflow-hidden rounded-[1.5rem] border shadow-[0_18px_46px_rgba(98,56,77,0.1)] ring-1 ${matchTone.card}`}
     >
       <div
-        className={`flex cursor-pointer items-center justify-between gap-4 border-l-[0.375rem] p-4 transition-colors ${matchTone.summary}`}
+        className={`flex cursor-pointer items-stretch justify-between gap-4 border-l-[0.375rem] p-4 transition-colors ${matchTone.summary}`}
       >
-        <div className="flex w-24 shrink-0 flex-col items-start justify-center gap-1">
-          <div className={`text-sm font-bold ${matchTone.label}`}>
-            {queueName}
-          </div>
-          <div className={`text-xs font-medium ${matchTone.muted}`}>
-            {getTimeAgo(match.metaData.gameEndTimestamp)}
-          </div>
-          <div className="flex gap-1 text-xs">
-            <div className={`font-semibold ${matchTone.label}`}>
+        <div className="flex min-w-[30rem] flex-1 flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-xl border px-3 py-1.5 text-xs font-black shadow-[0_4px_10px_rgba(98,56,77,0.05)] ${matchTone.chip}`}
+            >
+              {queueName}
+            </span>
+            <span
+              className={`rounded-xl border px-3 py-1.5 text-xs font-bold shadow-[0_4px_10px_rgba(98,56,77,0.05)] ${matchTone.chip}`}
+            >
+              {getTimeAgo(match.metaData.gameEndTimestamp)}
+            </span>
+            <span
+              className={`rounded-xl border px-3 py-1.5 text-xs font-black shadow-[0_4px_10px_rgba(98,56,77,0.05)] ${matchTone.resultChip}`}
+            >
               {match.myData.win ? "승리" : "패배"}
-            </div>
-            <div className={matchTone.muted}>
+              <span className="mx-1 opacity-50">·</span>
               {formatGameDuration(match.metaData.gameDuration)}
-            </div>
+            </span>
           </div>
-        </div>
-        <div className="flex min-w-0 flex-1 items-center justify-between gap-5">
-          <div className="flex flex-col">
-            <div className="flex gap-3">
+
+          <div className="flex min-h-[6.25rem] items-center justify-between gap-5">
+            <div className="flex items-center gap-5">
               <div className="flex items-center gap-1">
                 <div>
                   <MatchImage
@@ -147,21 +157,21 @@ export const MatchCard = memo(function MatchCard({
                       gameVersion
                     )}
                     alt="profile"
-                    width={52}
-                    height={52}
-                    className="rounded-2xl"
+                    width={74}
+                    height={74}
+                    className="rounded-[1.35rem] shadow-[0_8px_18px_rgba(98,56,77,0.14)]"
                   />
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="ml-1 flex flex-col gap-1.5">
                   <MatchImage
                     src={getSpellIconUrl(
                       spell?.[match.myData.summoner1Id]?.imageFull,
                       gameVersion
                     )}
                     alt="summoner spell 1"
-                    width={24}
-                    height={24}
-                    className="rounded-lg"
+                    width={32}
+                    height={32}
+                    className="rounded-[0.65rem]"
                     placeholderClassName="rounded-lg bg-[#f8e8f0]/80"
                   />
                   <MatchImage
@@ -170,43 +180,43 @@ export const MatchCard = memo(function MatchCard({
                       gameVersion
                     )}
                     alt="summoner spell 2"
-                    width={24}
-                    height={24}
-                    className="rounded-lg"
+                    width={32}
+                    height={32}
+                    className="rounded-[0.65rem]"
                     placeholderClassName="rounded-lg bg-[#f8e8f0]/80"
                   />
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   <MatchImage
-                    src={getRuneIconUrl(rune?.[match.myData.primaryStyle]?.icon)}
+                    src={getRuneIconUrl(
+                      rune?.[match.myData.primaryStyle]?.icon
+                    )}
                     alt="primary rune"
-                    width={24}
-                    height={24}
-                    className="rounded-lg"
+                    width={32}
+                    height={32}
+                    className="rounded-[0.65rem]"
                     placeholderClassName="rounded-lg bg-[#f8e8f0]/80"
                   />
                   <MatchImage
                     src={getRuneIconUrl(rune?.[match.myData.subStyle]?.icon)}
                     alt="sub rune"
-                    width={24}
-                    height={24}
-                    className="rounded-lg"
+                    width={32}
+                    height={32}
+                    className="rounded-[0.65rem]"
                     placeholderClassName="rounded-lg bg-[#f8e8f0]/80"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col justify-center">
-                <div className="flex gap-1 text-lg font-bold">
+                <div className="flex gap-1 text-[1.35rem] font-black leading-none">
                   <span>{match.myData.kills}</span>
                   <span>/</span>
-                  <span className="text-[#ff4f73]">
-                    {match.myData.deaths}
-                  </span>
+                  <span className="text-[#ff4f73]">{match.myData.deaths}</span>
                   <span>/</span>
                   <span>{match.myData.assists}</span>
                 </div>
-                <p className={`text-xs font-semibold ${matchTone.muted}`}>
+                <p className={`mt-2 text-sm font-bold ${matchTone.muted}`}>
                   {match.myData.kda ? match.myData.kda.toFixed(2) : ""}
                   KDA
                 </p>
@@ -215,44 +225,54 @@ export const MatchCard = memo(function MatchCard({
                 </div>
               </div>
             </div>
-            <div className="mt-2 flex gap-1">
+
+            <div className="flex gap-1.5">
               {getMatchItems(match).map((itemId, index) =>
                 itemId > 0 ? (
                   <MatchImage
                     key={`${match.metaData.matchId}-item-${index}`}
                     src={getItemIconUrl(itemId, gameVersion)}
                     alt={`item ${index + 1}`}
-                    width={22}
-                    height={22}
-                    className="h-[22px] w-[22px] rounded-md border border-white/80 bg-white shadow-[0_4px_10px_rgba(98,56,77,0.1)]"
+                    width={30}
+                    height={30}
+                    className="h-[30px] w-[30px] rounded-lg border border-white/80 bg-white shadow-[0_5px_12px_rgba(98,56,77,0.11)]"
                   />
                 ) : (
                   <div
                     key={`${match.metaData.matchId}-empty-item-${index}`}
-                    className="h-[22px] w-[22px] rounded-md border border-white/80 bg-[#f8e8f0]/80 shadow-inner"
+                    className="h-[30px] w-[30px] rounded-lg border border-white/80 bg-[#f8e8f0]/80 shadow-inner"
                     aria-label={`empty item ${index + 1}`}
                   />
                 )
               )}
             </div>
-          </div>
-          <div
-            className={`flex w-[6.5rem] shrink-0 flex-col items-center justify-center rounded-2xl px-3 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ${matchTone.scoreBox}`}
-          >
-            <h5
-              className={`whitespace-nowrap text-sm font-bold leading-none ${matchTone.muted}`}
-            >
-              AI-Score
-            </h5>
+
             <div
-              className={`mt-1 text-3xl font-black leading-none ${matchTone.scoreText}`}
+              className={`w-[7.25rem] shrink-0 rounded-[1.15rem] ${
+                hasLegendaryAiScore ? "ai-score-legendary p-[2px]" : ""
+              }`}
             >
-              {match.myData.ourScore}
-            </div>
-            <div
-              className={`mt-1 whitespace-nowrap text-xs font-semibold ${matchTone.muted}`}
-            >
-              {formatAiScoreRank(myAiScoreRank)}
+              <div
+                className={`relative z-10 flex min-h-[6rem] flex-col items-center justify-center rounded-[1.05rem] px-3 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ${matchTone.scoreBox}`}
+              >
+                <h5
+                  className={`whitespace-nowrap text-sm font-bold leading-none ${matchTone.muted}`}
+                >
+                  AI-Score
+                </h5>
+                <div
+                  className={`mt-1 text-4xl font-black leading-none ${matchTone.scoreText} ${
+                    hasLegendaryAiScore ? "ai-score-legendary-text" : ""
+                  }`}
+                >
+                  {match.myData.ourScore}
+                </div>
+                <div
+                  className={`mt-1 whitespace-nowrap text-xs font-semibold ${matchTone.muted}`}
+                >
+                  {formatAiScoreRank(myAiScoreRank)}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -275,7 +295,8 @@ export const MatchCard = memo(function MatchCard({
         <button
           type="button"
           onClick={() => onToggleExpand(match.metaData.matchId)}
-          className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-colors ${matchTone.expand}`}
+          className={`flex h-12 w-12 shrink-0 self-center items-center justify-center rounded-2xl transition-colors ${matchTone.expand}`}
+          aria-label={isExpanded ? "전적 상세 닫기" : "전적 상세 보기"}
         >
           <svg
             className={`h-4 w-4 transition-transform ${
