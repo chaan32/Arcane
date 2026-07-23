@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arcane Match Card Layout Options</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #58364b;
+      --muted: #8b7890;
+      --blue: #3789ed;
+      --blue-soft: #eaf5ff;
+      --pink: #fa6aa3;
+      --pink-soft: #fff1f7;
+      --line: #d7e9fb;
+      --panel: #eef7ff;
+      --white: #fff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #fff9fc;
+      color: var(--ink);
+      font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .page {
+      width: min(1480px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 38px 0 56px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.25;
+      color: #382836;
+    }
+
+    .intro {
+      margin: 10px 0 30px;
+      color: #796777;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .options {
+      display: grid;
+      gap: 24px;
+    }
+
+    .choice {
+      border: 2px solid transparent;
+      border-radius: 16px;
+      background: white;
+      padding: 20px;
+      box-shadow: 0 8px 30px rgba(92, 67, 84, .08);
+      cursor: pointer;
+      transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+    }
+
+    .choice:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 34px rgba(92, 67, 84, .13);
+    }
+
+    .choice.selected {
+      border-color: #528ff0;
+      box-shadow: 0 0 0 4px rgba(82, 143, 240, .12), 0 12px 34px rgba(92, 67, 84, .13);
+    }
+
+    .choice-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .choice-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      color: #392b38;
+      font-size: 18px;
+    }
+
+    .choice-key {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: #3989ed;
+      color: white;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .choice-copy {
+      margin: 5px 0 0 38px;
+      color: #877585;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .recommended {
+      border-radius: 999px;
+      background: #e8f3ff;
+      color: #2878db;
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .match {
+      position: relative;
+      min-height: 268px;
+      overflow: hidden;
+      border: 1px solid #cce4fa;
+      border-left: 8px solid #4797f5;
+      border-radius: 22px;
+      background: linear-gradient(100deg, #f2f9ff 0%, #e8f4ff 100%);
+      padding: 20px 22px;
+    }
+
+    .match-grid {
+      height: 100%;
+      display: grid;
+      grid-template-columns: minmax(500px, 1fr) minmax(480px, .92fr) 48px;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .left {
+      min-width: 0;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 16px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 31px;
+      border: 1px solid #a9d1fa;
+      border-radius: 999px;
+      background: rgba(255,255,255,.76);
+      padding: 0 13px;
+      color: #4384c8;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .pill.win {
+      color: #237ce2;
+      border-color: #89c2fb;
+      background: #eaf5ff;
+    }
+
+    .core {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      min-height: 142px;
+    }
+
+    .champ-wrap {
+      position: relative;
+      flex: none;
+    }
+
+    .champion {
+      display: block;
+      width: 94px;
+      height: 94px;
+      border: 4px solid rgba(255,255,255,.92);
+      border-radius: 24px;
+      object-fit: cover;
+      box-shadow: 0 8px 18px rgba(37, 95, 151, .16);
+    }
+
+    .level {
+      position: absolute;
+      right: -5px;
+      bottom: -5px;
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border: 3px solid #f4faff;
+      border-radius: 50%;
+      background: #477eb7;
+      color: white;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .tiny-stack {
+      display: grid;
+      grid-template-columns: repeat(2, 27px);
+      gap: 5px;
+      flex: none;
+    }
+
+    .tiny-stack img,
+    .item {
+      display: block;
+      width: 27px;
+      height: 27px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.65);
+    }
+
+    .performance {
+      min-width: 126px;
+    }
+
+    .kda {
+      color: #63364f;
+      font-size: 31px;
+      line-height: 1;
+      font-weight: 850;
+    }
+
+    .death { color: #f15a89; }
+
+    .ratio {
+      margin-top: 9px;
+      color: #668bb5;
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .items {
+      display: flex;
+      gap: 5px;
+      margin-top: 14px;
+    }
+
+    .item {
+      width: 35px;
+      height: 35px;
+      border-radius: 10px;
+    }
+
+    .score {
+      min-width: 112px;
+      border: 2px solid #75c1fb;
+      border-radius: 18px;
+      background: rgba(255,255,255,.68);
+      padding: 14px 15px;
+      text-align: center;
+    }
+
+    .score-label {
+      color: #7092b8;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .score-value {
+      margin-top: 2px;
+      color: #2f83ee;
+      font-size: 39px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .score-rank {
+      margin-top: 4px;
+      color: #7693b1;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .teams {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+      align-content: center;
+    }
+
+    .player {
+      display: grid;
+      grid-template-columns: 34px 32px minmax(0,1fr);
+      align-items: center;
+      gap: 8px;
+      height: 42px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.83);
+      padding: 4px 9px;
+    }
+
+    .player.me {
+      border: 1px solid #f799bd;
+      background: #fff2f7;
+    }
+
+    .player img {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      object-fit: cover;
+    }
+
+    .rank {
+      display: inline-grid;
+      place-items: center;
+      min-width: 30px;
+      height: 25px;
+      border: 1px solid #ffd16d;
+      border-radius: 8px;
+      background: #fff7df;
+      color: #bb8521;
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .rank.gm {
+      border-color: #ffabc1;
+      background: #fff0f4;
+      color: #e45278;
+    }
+
+    .player-name {
+      overflow: hidden;
+      color: #60374e;
+      font-size: 13px;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tag {
+      color: #a06180;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .expand {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 54px;
+      border: 0;
+      border-radius: 16px;
+      background: #e4f2ff;
+      color: #3f8be8;
+      font-size: 22px;
+    }
+
+    /* Option B: image-forward */
+    .spotlight .match-grid {
+      grid-template-columns: minmax(510px, 1.08fr) minmax(470px, .9fr) 48px;
+    }
+
+    .spotlight .left {
+      display: grid;
+      grid-template-columns: 172px minmax(0,1fr);
+      gap: 20px;
+      align-items: center;
+    }
+
+    .spotlight .visual {
+      position: relative;
+      min-height: 208px;
+      overflow: hidden;
+      border-radius: 18px;
+      background: #1f5b8d;
+    }
+
+    .spotlight .visual::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 42%, rgba(16, 54, 89, .94));
+    }
+
+    .spotlight .visual img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.28);
+    }
+
+    .spotlight .visual-copy {
+      position: absolute;
+      z-index: 2;
+      right: 15px;
+      bottom: 14px;
+      left: 15px;
+      color: white;
+    }
+
+    .spotlight .visual-name {
+      font-size: 18px;
+      font-weight: 850;
+    }
+
+    .spotlight .visual-sub {
+      margin-top: 2px;
+      font-size: 11px;
+      opacity: .78;
+    }
+
+    .spotlight .details {
+      min-width: 0;
+    }
+
+    .spotlight .core {
+      min-height: auto;
+      align-items: flex-end;
+    }
+
+    .spotlight .score {
+      margin-left: auto;
+    }
+
+    /* Option C: dense */
+    .dense.match {
+      min-height: 222px;
+      padding-block: 17px;
+    }
+
+    .dense .match-grid {
+      grid-template-columns: minmax(520px, 1fr) minmax(470px, .9fr) 48px;
+    }
+
+    .dense .left {
+      display: grid;
+      grid-template-columns: 78px 135px minmax(210px, 1fr) 86px;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .dense .champion {
+      width: 74px;
+      height: 74px;
+      border-radius: 20px;
+    }
+
+    .dense .meta {
+      grid-column: 1 / -1;
+      margin: 0 0 2px;
+    }
+
+    .dense .performance {
+      min-width: 0;
+    }
+
+    .dense .kda {
+      font-size: 28px;
+    }
+
+    .dense .items {
+      margin-top: 0;
+      flex-wrap: wrap;
+    }
+
+    .dense .score {
+      min-width: 84px;
+      padding: 11px 8px;
+    }
+
+    .dense .score-value {
+      font-size: 30px;
+    }
+
+    .dense .player {
+      height: 36px;
+      grid-template-columns: 28px 29px minmax(0,1fr);
+      border-radius: 11px;
+    }
+
+    .dense .player img {
+      width: 27px;
+      height: 27px;
+      border-radius: 8px;
+    }
+
+    .dense .rank {
+      min-width: 27px;
+      height: 22px;
+    }
+
+    .dense .player-name {
+      font-size: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .match-grid,
+      .spotlight .match-grid,
+      .dense .match-grid {
+        grid-template-columns: 1fr;
+      }
+      .teams { margin-top: 12px; }
+      .expand { display: none; }
+      .dense .left { grid-template-columns: 78px 135px 1fr 86px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>전적 카드 왼쪽 영역 재구성</h1>
+    <p class="intro">
+      실제 챔피언 이미지를 더 강하게 사용하면서도 KDA, 아이템, AI 점수가 한 덩어리로 읽히도록 구성했습니다.
+      아래 카드 중 가장 마음에 드는 안을 클릭해 주세요.
+    </p>
+
+    <section class="options">
+      <article class="choice" data-choice="A - 균형형 전투 요약" onclick="toggleSelect(this)">
+        <header class="choice-head">
+          <div>
+            <h2 class="choice-title"><span class="choice-key">A</span> 균형형 전투 요약</h2>
+            <p class="choice-copy">챔피언 이미지를 키우고 KDA·아이템·AI 점수를 한 줄로 묶은 가장 안정적인 구성</p>
+          </div>
+          <span class="recommended">추천</span>
+        </header>
+
+        <div class="match">
+          <div class="match-grid">
+            <section class="left">
+              <div class="meta">
+                <span class="pill">솔로랭크</span>
+                <span class="pill">11일 전</span>
+                <span class="pill win">승리 · 34:24</span>
+              </div>
+              <div class="core">
+                <div class="champ-wrap">
+                  <img class="champion" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Kayn.png" alt="Kayn">
+                  <span class="level">18</span>
+                </div>
+                <div class="tiny-stack">
+                  <img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/spell/SummonerFlash.png" alt="">
+                  <img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/spell/SummonerSmite.png" alt="">
+                  <img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/3340.png" alt="">
+                  <img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/3364.png" alt="">
+                </div>
+                <div class="performance">
+                  <div class="kda">3 / <span class="death">2</span> / 11</div>
+                  <div class="ratio">7.00 KDA · 66% 관여</div>
+                  <div class="items">
+                    <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/6692.png" alt="">
+                    <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/3071.png" alt="">
+                    <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/3156.png" alt="">
+                    <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/3111.png" alt="">
+                    <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/6333.png" alt="">
+                  </div>
+                </div>
+                <div class="score">
+                  <div class="score-label">AI-SCORE</div>
+                  <div class="score-value">100</div>
+                  <div class="score-rank">팀 내 1위</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="teams">
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Nocturne.png"><span class="rank">C</span><div><div class="player-name">jio3r</div><div class="tag">#Miss</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Ahri.png"><span class="rank gm">GM</span><div><div class="player-name">T1 Cypher</div><div class="tag">#KR21</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Syndra.png"><span class="rank">C</span><div><div class="player-name">Blue</div><div class="tag">#KR33</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Renekton.png"><span class="rank">M</span><div><div class="player-name">Elden Ring</div><div class="tag">#엘데의왕</div></div></div>
+              <div class="player me"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Kayn.png"><span class="rank">C</span><div><div class="player-name">Hide on bush</div><div class="tag">#KR1</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Urgot.png"><span class="rank">M</span><div><div class="player-name">샤오 쑤A</div><div class="tag">#KR1</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Jax.png"><span class="rank gm">GM</span><div><div class="player-name">성훈</div><div class="tag">#1231</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/LeeSin.png"><span class="rank gm">GM</span><div><div class="player-name">klovejiao</div><div class="tag">#jiao</div></div></div>
+            </section>
+            <button class="expand">⌄</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="choice" data-choice="B - 챔피언 스포트라이트" onclick="toggleSelect(this)">
+        <header class="choice-head">
+          <div>
+            <h2 class="choice-title"><span class="choice-key">B</span> 챔피언 스포트라이트</h2>
+            <p class="choice-copy">챔피언 이미지를 카드의 시각적 중심으로 사용해 게임별 구분이 빠른 구성</p>
+          </div>
+        </header>
+
+        <div class="match spotlight">
+          <div class="match-grid">
+            <section class="left">
+              <div class="visual">
+                <img src="https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Kayn_0.jpg" alt="Kayn">
+                <div class="visual-copy">
+                  <div class="visual-name">케인 · 정글</div>
+                  <div class="visual-sub">레벨 18 · 그림자 암살자</div>
+                </div>
+              </div>
+              <div class="details">
+                <div class="meta">
+                  <span class="pill">솔로랭크</span>
+                  <span class="pill">11일 전</span>
+                  <span class="pill win">승리 · 34:24</span>
+                </div>
+                <div class="core">
+                  <div class="performance">
+                    <div class="kda">3 / <span class="death">2</span> / 11</div>
+                    <div class="ratio">7.00 KDA · 팀 내 1위</div>
+                    <div class="items">
+                      <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/6692.png" alt="">
+                      <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/3071.png" alt="">
+                      <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/3156.png" alt="">
+                      <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/3111.png" alt="">
+                      <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/6333.png" alt="">
+                    </div>
+                  </div>
+                  <div class="score">
+                    <div class="score-label">AI-SCORE</div>
+                    <div class="score-value">100</div>
+                    <div class="score-rank">상위 플레이</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="teams">
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Nocturne.png"><span class="rank">C</span><div><div class="player-name">jio3r</div><div class="tag">#Miss</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Ahri.png"><span class="rank gm">GM</span><div><div class="player-name">T1 Cypher</div><div class="tag">#KR21</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Syndra.png"><span class="rank">C</span><div><div class="player-name">Blue</div><div class="tag">#KR33</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Renekton.png"><span class="rank">M</span><div><div class="player-name">Elden Ring</div><div class="tag">#엘데의왕</div></div></div>
+              <div class="player me"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Kayn.png"><span class="rank">C</span><div><div class="player-name">Hide on bush</div><div class="tag">#KR1</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Urgot.png"><span class="rank">M</span><div><div class="player-name">샤오 쑤A</div><div class="tag">#KR1</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Jax.png"><span class="rank gm">GM</span><div><div class="player-name">성훈</div><div class="tag">#1231</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/LeeSin.png"><span class="rank gm">GM</span><div><div class="player-name">klovejiao</div><div class="tag">#jiao</div></div></div>
+            </section>
+            <button class="expand">⌄</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="choice" data-choice="C - 고밀도 전적 행" onclick="toggleSelect(this)">
+        <header class="choice-head">
+          <div>
+            <h2 class="choice-title"><span class="choice-key">C</span> 고밀도 전적 행</h2>
+            <p class="choice-copy">한 화면에서 더 많은 경기를 비교할 수 있도록 높이를 줄인 실용적인 구성</p>
+          </div>
+        </header>
+
+        <div class="match dense">
+          <div class="match-grid">
+            <section class="left">
+              <div class="meta">
+                <span class="pill">솔로랭크</span>
+                <span class="pill">11일 전</span>
+                <span class="pill win">승리 · 34:24</span>
+              </div>
+              <div class="champ-wrap">
+                <img class="champion" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Kayn.png" alt="Kayn">
+                <span class="level">18</span>
+              </div>
+              <div class="performance">
+                <div class="kda">3 / <span class="death">2</span> / 11</div>
+                <div class="ratio">7.00 KDA</div>
+              </div>
+              <div class="items">
+                <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/6692.png" alt="">
+                <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/3071.png" alt="">
+                <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/3156.png" alt="">
+                <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/3111.png" alt="">
+                <img class="item" src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/item/6333.png" alt="">
+              </div>
+              <div class="score">
+                <div class="score-label">AI</div>
+                <div class="score-value">100</div>
+                <div class="score-rank">1위</div>
+              </div>
+            </section>
+            <section class="teams">
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Nocturne.png"><span class="rank">C</span><div><div class="player-name">jio3r</div><div class="tag">#Miss</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Ahri.png"><span class="rank gm">GM</span><div><div class="player-name">T1 Cypher</div><div class="tag">#KR21</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Syndra.png"><span class="rank">C</span><div><div class="player-name">Blue</div><div class="tag">#KR33</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Renekton.png"><span class="rank">M</span><div><div class="player-name">Elden Ring</div><div class="tag">#엘데의왕</div></div></div>
+              <div class="player me"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Kayn.png"><span class="rank">C</span><div><div class="player-name">Hide on bush</div><div class="tag">#KR1</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Urgot.png"><span class="rank">M</span><div><div class="player-name">샤오 쑤A</div><div class="tag">#KR1</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/Jax.png"><span class="rank gm">GM</span><div><div class="player-name">성훈</div><div class="tag">#1231</div></div></div>
+              <div class="player"><img src="https://ddragon.leagueoflegends.com/cdn/15.1.1/img/champion/LeeSin.png"><span class="rank gm">GM</span><div><div class="player-name">klovejiao</div><div class="tag">#jiao</div></div></div>
+            </section>
+            <button class="expand">⌄</button>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
