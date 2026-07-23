@@ -42,6 +42,7 @@ type MatchParticipantSummaryListProps = {
   gameVersion?: string | null;
   playerIndexes: readonly MatchPlayerIndex[];
   players: Match["participants"];
+  title: string;
   onSummonerClick: (gameName: string, tagLine: string) => void;
 };
 
@@ -125,10 +126,10 @@ export const MatchCard = memo(function MatchCard({
       className={`flex flex-col overflow-hidden rounded-[1.5rem] border shadow-[0_18px_46px_rgba(98,56,77,0.1)] ring-1 ${matchTone.card}`}
     >
       <div
-        className={`relative grid cursor-pointer grid-cols-1 gap-4 border-l-[0.375rem] p-4 transition-colors lg:grid-cols-2 xl:grid-cols-[minmax(34rem,1fr)_14.5rem_14.5rem_3rem] xl:items-center ${matchTone.summary}`}
+        className={`relative grid cursor-pointer grid-cols-1 gap-4 border-l-[0.375rem] p-4 transition-colors lg:grid-cols-2 xl:grid-cols-[minmax(39rem,1fr)_13.5rem_13.5rem_2.75rem] xl:items-stretch xl:gap-3 ${matchTone.summary}`}
       >
-        <div className="flex min-w-0 flex-col gap-4 pr-14 lg:col-span-2 xl:col-span-1 xl:pr-0">
-          <div className="flex flex-wrap items-center gap-1.5">
+        <div className="grid min-w-0 grid-cols-1 gap-4 pr-14 sm:grid-cols-[minmax(18rem,1fr)_minmax(9rem,auto)_6.75rem] sm:items-center lg:col-span-2 xl:col-span-1 xl:h-full xl:grid-rows-[auto_1fr] xl:border-r xl:border-[#dbe8f7]/80 xl:pr-4">
+          <div className="flex flex-wrap items-center gap-1.5 sm:col-span-3">
             <span
               className={`rounded-full border px-3 py-1.5 text-xs font-black shadow-[0_4px_10px_rgba(98,56,77,0.05)] ${matchTone.chip}`}
             >
@@ -148,7 +149,7 @@ export const MatchCard = memo(function MatchCard({
             </span>
           </div>
 
-          <div className="grid min-w-0 grid-cols-[auto_minmax(8rem,auto)] items-center gap-4 sm:grid-cols-[auto_minmax(8rem,auto)_minmax(11rem,1fr)_7rem]">
+          <div className="flex min-w-0 items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="relative shrink-0">
                 <MatchImage
@@ -229,53 +230,53 @@ export const MatchCard = memo(function MatchCard({
                 {getMultiKillLabel(match)}
               </div>
             </div>
+          </div>
 
-            <div className="col-span-2 flex min-w-0 flex-wrap items-center gap-1.5 sm:col-span-1">
-              {getMatchItems(match).map((itemId, index) =>
-                itemId > 0 ? (
-                  <MatchImage
-                    key={`${match.metaData.matchId}-item-${index}`}
-                    src={getItemIconUrl(itemId, gameVersion)}
-                    alt={`item ${index + 1}`}
-                    width={34}
-                    height={34}
-                    className="h-[34px] w-[34px] rounded-[0.7rem] border border-white/80 bg-white shadow-[0_5px_12px_rgba(98,56,77,0.11)]"
-                  />
-                ) : (
-                  <div
-                    key={`${match.metaData.matchId}-empty-item-${index}`}
-                    className="h-[34px] w-[34px] rounded-[0.7rem] border border-white/80 bg-[#f8e8f0]/80 shadow-inner"
-                    aria-label={`empty item ${index + 1}`}
-                  />
-                )
-              )}
-            </div>
+          <div className="grid min-w-0 grid-cols-4 gap-1.5 justify-self-start sm:justify-self-center">
+            {getMatchItems(match).map((itemId, index) =>
+              itemId > 0 ? (
+                <MatchImage
+                  key={`${match.metaData.matchId}-item-${index}`}
+                  src={getItemIconUrl(itemId, gameVersion)}
+                  alt={`item ${index + 1}`}
+                  width={34}
+                  height={34}
+                  className="h-[34px] w-[34px] rounded-[0.7rem] border border-white/80 bg-white shadow-[0_5px_12px_rgba(98,56,77,0.11)]"
+                />
+              ) : (
+                <div
+                  key={`${match.metaData.matchId}-empty-item-${index}`}
+                  className="h-[34px] w-[34px] rounded-[0.7rem] border border-white/80 bg-[#f8e8f0]/80 shadow-inner"
+                  aria-label={`empty item ${index + 1}`}
+                />
+              )
+            )}
+          </div>
 
+          <div
+            className={`w-[6.75rem] shrink-0 justify-self-start rounded-[1.1rem] sm:justify-self-end ${
+              hasLegendaryAiScore ? "ai-score-legendary p-[2px]" : ""
+            }`}
+          >
             <div
-              className={`col-span-2 w-28 shrink-0 justify-self-end rounded-[1.1rem] sm:col-span-1 ${
-                hasLegendaryAiScore ? "ai-score-legendary p-[2px]" : ""
-              }`}
+              className={`relative z-10 flex min-h-[5.5rem] flex-col items-center justify-center rounded-[1rem] px-3 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ${matchTone.scoreBox}`}
             >
-              <div
-                className={`relative z-10 flex min-h-[5.5rem] flex-col items-center justify-center rounded-[1rem] px-3 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ${matchTone.scoreBox}`}
+              <h5
+                className={`whitespace-nowrap text-[11px] font-black leading-none ${matchTone.muted}`}
               >
-                <h5
-                  className={`whitespace-nowrap text-[11px] font-black leading-none ${matchTone.muted}`}
-                >
-                  AI-SCORE
-                </h5>
-                <div
-                  className={`mt-1 text-[2.1rem] font-black leading-none ${matchTone.scoreText} ${
-                    hasLegendaryAiScore ? "ai-score-legendary-text" : ""
-                  }`}
-                >
-                  {match.myData.ourScore}
-                </div>
-                <div
-                  className={`mt-1 whitespace-nowrap text-xs font-semibold ${matchTone.muted}`}
-                >
-                  {formatAiScoreRank(myAiScoreRank)}
-                </div>
+                AI-SCORE
+              </h5>
+              <div
+                className={`mt-1 text-[2.1rem] font-black leading-none ${matchTone.scoreText} ${
+                  hasLegendaryAiScore ? "ai-score-legendary-text" : ""
+                }`}
+              >
+                {match.myData.ourScore}
+              </div>
+              <div
+                className={`mt-1 whitespace-nowrap text-xs font-semibold ${matchTone.muted}`}
+              >
+                {formatAiScoreRank(myAiScoreRank)}
               </div>
             </div>
           </div>
@@ -286,6 +287,7 @@ export const MatchCard = memo(function MatchCard({
           gameVersion={gameVersion}
           playerIndexes={TEAM_ONE_PLAYERS}
           players={match.participants}
+          title={isMyTeamOne ? "우리 팀" : "상대 팀"}
           onSummonerClick={onSummonerClick}
         />
         <MatchParticipantSummaryList
@@ -293,6 +295,7 @@ export const MatchCard = memo(function MatchCard({
           gameVersion={gameVersion}
           playerIndexes={TEAM_TWO_PLAYERS}
           players={match.participants}
+          title={isMyTeamOne ? "상대 팀" : "우리 팀"}
           onSummonerClick={onSummonerClick}
         />
 
@@ -328,10 +331,15 @@ const MatchParticipantSummaryList = memo(function MatchParticipantSummaryList({
   gameVersion,
   playerIndexes,
   players,
+  title,
   onSummonerClick,
 }: MatchParticipantSummaryListProps) {
   return (
-    <div className="flex w-full min-w-0 flex-col gap-1.5 text-xs text-[#7d5368]">
+    <div className="flex w-full min-w-0 flex-col gap-1 text-xs text-[#7d5368]">
+      <div className="flex h-5 items-center gap-1.5 px-1 text-[10px] font-black tracking-normal text-[#7890ad]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#82b8f4]" />
+        {title}
+      </div>
       {playerIndexes.map((playerIndex) => {
         const player: MatchParticipant = getParticipant(players, playerIndex);
         const participantSummaryLabel = getParticipantSummaryLabel(player);
@@ -341,7 +349,7 @@ const MatchParticipantSummaryList = memo(function MatchParticipantSummaryList({
           <button
             key={playerIndex}
             type="button"
-            className={`group flex min-w-0 items-center gap-2 rounded-[0.85rem] border px-2 py-1.5 text-left shadow-[0_5px_14px_rgba(98,56,77,0.06)] transition-all hover:-translate-y-0.5 hover:border-[#f5a9c8] hover:bg-white hover:shadow-[0_8px_18px_rgba(205,79,134,0.12)] ${
+            className={`group flex min-w-0 items-center gap-2 rounded-[0.75rem] border px-2 py-1 text-left shadow-[0_4px_12px_rgba(98,56,77,0.05)] transition-all hover:-translate-y-0.5 hover:border-[#f5a9c8] hover:bg-white hover:shadow-[0_7px_16px_rgba(205,79,134,0.11)] ${
               isCurrentSummoner
                 ? "border-[#f5a9c8] bg-[#fff0f7]"
                 : "border-white/80 bg-white/70"
@@ -356,9 +364,9 @@ const MatchParticipantSummaryList = memo(function MatchParticipantSummaryList({
               <MatchImage
                 src={getChampionIconUrl(player.championNameEn, gameVersion)}
                 alt="profile"
-                width={27}
-                height={27}
-                className="h-[27px] w-[27px] rounded-[0.6rem]"
+                width={26}
+                height={26}
+                className="h-[26px] w-[26px] rounded-[0.55rem]"
               />
             </div>
             <span className={getParticipantTierBadgeClassName(player)}>
