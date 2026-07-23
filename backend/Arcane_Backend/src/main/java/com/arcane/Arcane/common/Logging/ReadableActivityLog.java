@@ -61,12 +61,18 @@ public final class ReadableActivityLog {
         boolean rateLimited = status != null && status == 429 || containsRateLimitMessage(line) || containsRateLimitMessage(message);
         String riotId = riotIdFromQuery(fields.get("query")).orElse("해당 소환사");
         String actor = actorLabel(fields.get("user"));
+        String activity = blankToNull(fields.get("activity"));
 
         Map<String, Object> entry = new LinkedHashMap<>();
         entry.put("occurredAt", extract(TIMESTAMP_PATTERN, line).orElse(null));
         entry.put("level", extract(LEVEL_PATTERN, line).orElse(failed ? "ERROR" : "INFO"));
         entry.put("category", category(uri));
-        entry.put("message", describe(uri, fields.get("method"), fields.get("query"), riotId, actor, failed, rateLimited));
+        entry.put(
+                "message",
+                activity == null
+                        ? describe(uri, fields.get("method"), fields.get("query"), riotId, actor, failed, rateLimited)
+                        : sanitize(activity)
+        );
         entry.put("detail", detail(uri, fields, message));
         entry.put("status", status);
         entry.put("elapsedMs", elapsedMs);

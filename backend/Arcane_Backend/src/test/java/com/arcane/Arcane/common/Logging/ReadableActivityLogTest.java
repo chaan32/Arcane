@@ -10,6 +10,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ReadableActivityLogTest {
 
     @Test
+    void usesCompletedRequestActivityWithSearchedRiotId() {
+        String line = """
+                2026-07-22 07:42:44.961 INFO  [Arcane] trace=26c08ed3c2554 thread=http-nio-8080-exec-1 com.arcane.Arcane.common.Logging.ApiLoggingInterceptor | [API][HTTP 요청 - 전적 목록 조회][SummonerController.summonerMatchesFinal][요청 성공] method=GET | uri=/api/v1/summoner/matches/1 | status=200 | elapsedMs=8258 | user=anonymous | activity=anonymous 사용자가 Hide on bush#KR1로 전적을 검색했습니다.
+                """.trim();
+
+        Optional<Map<String, Object>> result = ReadableActivityLog.parse(line, "api");
+
+        assertThat(result).isPresent();
+        assertThat(result.orElseThrow())
+                .containsEntry("category", "전적/소환사")
+                .containsEntry("message", "anonymous 사용자가 Hide on bush#KR1로 전적을 검색했습니다.");
+    }
+
+    @Test
     void parsesWorkerRankingCompletionAsReadableActivity() {
         String line = """
                 2026-07-23 10:11:12.123 INFO  [Arcane-Worker] trace=trace-123 thread=ranking-worker logger=com.arcane.worker.ranker.service.RankingService | [WORKER][랭킹 업데이트][RankingService.updateRanking][작업 완료] jobId=ranking-1 | traceId=trace-123
