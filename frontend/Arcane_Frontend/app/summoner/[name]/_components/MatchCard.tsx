@@ -53,10 +53,10 @@ const getMatchItems = (match: Match): number[] => [
   match.myData.item0,
   match.myData.item1,
   match.myData.item2,
+  match.myData.item6,
   match.myData.item3,
   match.myData.item4,
   match.myData.item5,
-  match.myData.item6,
 ];
 
 const getParticipant = (
