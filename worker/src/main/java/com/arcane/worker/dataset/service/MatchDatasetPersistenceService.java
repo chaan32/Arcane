@@ -10,10 +10,13 @@ import org.bson.Document;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -24,7 +27,9 @@ public class MatchDatasetPersistenceService {
     private final JdbcTemplate jdbcTemplate;
     private final org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
     private final ObjectMapper objectMapper;
+    private static final int EXPECTED_PARTICIPANT_COUNT = 10;
 
+    @Transactional
     public PersistResult persist(String matchId, JsonNode match, boolean saveMysql, boolean saveMongo) {
         if (match == null || match.isMissingNode() || match.isNull()) {
             return PersistResult.empty();
@@ -32,13 +37,19 @@ public class MatchDatasetPersistenceService {
 
         JsonNode info = match.path("info");
         JsonNode participants = info.path("participants");
-        if (!participants.isArray() || participants.isEmpty()) {
+        if (!hasCompleteParticipants(participants)) {
             log.warn(logMessage(
                     "MatchDatasetPersistenceService.persist",
                     "저장 스킵",
-                    "matchId=" + matchId + " | reason=participants_empty"
+                    "matchId=" + matchId
+                            + " | reason=incomplete_participants"
+                            + " | participantCount=" + participants.size()
             ));
-            return PersistResult.empty();
+
+            throw new IllegalStateException(
+                    "매치 참가자가 10명이 아니거나 PUUID가 올바르지 않습니다. matchId="
+                            + matchId
+            );
         }
 
         int savedMysqlMatches = saveMysql ? saveMatchInfo(matchId, info) : 0;
@@ -71,6 +82,18 @@ public class MatchDatasetPersistenceService {
                 } else {
                     skippedDuplicateParticipants++;
                 }
+            }
+        }
+
+        if (saveMysql && matchInfoId != null) {
+            int totalParticipantCount = countMysqlParticipants(matchInfoId);
+
+            if (totalParticipantCount != EXPECTED_PARTICIPANT_COUNT) {
+                throw new IllegalStateException(
+                        "MySQL 참가자 저장 결과가 10명이 아닙니다."
+                                + " matchId=" + matchId
+                                + ", actual=" + totalParticipantCount
+                );
             }
         }
 
@@ -124,18 +147,8 @@ public class MatchDatasetPersistenceService {
 
     private boolean saveMysqlParticipant(Long matchInfoId, JsonNode participant) {
         Long summonerId = findOrCreateSummoner(participant);
-        Integer existing = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM match_participant WHERE match_id = ? AND summoner_id = ?",
-                Integer.class,
-                matchInfoId,
-                summonerId
-        );
-        if (existing != null && existing > 0) {
-            return false;
-        }
-
-        jdbcTemplate.update("""
-                        INSERT INTO match_participant (
+        int inserted = jdbcTemplate.update("""
+                        INSERT IGNORE INTO match_participant (
                             assists,
                             champ_level,
                             champion_id,
@@ -218,7 +231,7 @@ public class MatchDatasetPersistenceService {
                 intValue(participant, "wardsPlaced"),
                 boolValue(participant, "win")
         );
-        return true;
+        return inserted == 1;
     }
 
     private Long findOrCreateSummoner(JsonNode participant) {
@@ -354,8 +367,43 @@ public class MatchDatasetPersistenceService {
         return (kills + assists) / (float) deaths;
     }
 
+    private int countMysqlParticipants(Long matchInfoId) {
+        Integer count = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM match_participant
+                WHERE match_id = ?
+                """,
+                Integer.class,
+                matchInfoId
+        );
+
+        return count == null ? 0 : count;
+    }
+
+
     private String logMessage(String method, String status, String detail) {
         return WorkerLogSupport.log("매치 데이터 저장", method, status, detail);
+    }
+    private boolean hasCompleteParticipants(JsonNode participants) {
+        if (!participants.isArray()
+                || participants.size() != EXPECTED_PARTICIPANT_COUNT) {
+            return false;
+        }
+
+        Set<String> uniquePuuids = new HashSet<>();
+
+        for (JsonNode participant : participants) {
+            String puuid = text(participant, "puuid");
+
+            if (puuid == null
+                    || puuid.isBlank()
+                    || !uniquePuuids.add(puuid)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public record PersistResult(
@@ -377,4 +425,5 @@ public class MatchDatasetPersistenceService {
             );
         }
     }
+
 }
