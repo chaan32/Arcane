@@ -16,6 +16,9 @@ public final class ReadableActivityLog {
     private static final Pattern LEVEL_PATTERN = Pattern.compile("\\b(INFO|WARN|ERROR)\\b");
     private static final Pattern TRACE_PATTERN = Pattern.compile("\\btrace=([^\\s]+)");
     private static final Pattern FIELD_PATTERN = Pattern.compile("(^| \\| )([a-zA-Z][a-zA-Z0-9_-]*)=([^|]*)(?= \\| |$)");
+    private static final Pattern WORKER_PATTERN = Pattern.compile(
+            "\\[WORKER]\\[([^\\]]+)]\\[([^\\]]+)]\\[([^\\]]+)]\\s*(.*)$"
+    );
     private static final Set<String> NOISY_ADMIN_URIS = Set.of(
             "/api/v1/admin/logs",
             "/api/v1/admin/dashboard",
@@ -37,6 +40,10 @@ public final class ReadableActivityLog {
     }
 
     public static Optional<Map<String, Object>> parse(String line, String source) {
+        if ("worker".equalsIgnoreCase(source) || line.contains("[WORKER]")) {
+            return parseWorker(line, source);
+        }
+
         Map<String, String> fields = fields(line);
         String uri = fields.get("uri");
 
@@ -68,6 +75,170 @@ public final class ReadableActivityLog {
         entry.put("source", source);
 
         return Optional.of(entry);
+    }
+
+    private static Optional<Map<String, Object>> parseWorker(String line, String source) {
+        Matcher matcher = WORKER_PATTERN.matcher(line);
+        if (!matcher.find()) {
+            return Optional.empty();
+        }
+
+        String task = matcher.group(1).trim();
+        String method = matcher.group(2).trim();
+        String statusLabel = matcher.group(3).trim();
+        String payload = matcher.group(4).trim();
+        String level = extract(LEVEL_PATTERN, line).orElse("INFO");
+        boolean failed = "ERROR".equals(level) || statusLabel.contains("실패") || statusLabel.contains("오류");
+        boolean rateLimited = containsRateLimitMessage(statusLabel) || containsRateLimitMessage(payload);
+
+        if (!shouldExposeWorkerActivity(task, method, statusLabel, failed, rateLimited)) {
+            return Optional.empty();
+        }
+
+        Map<String, String> workerFields = fields(payload);
+        String operation = workerOperation(task);
+
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("occurredAt", extract(TIMESTAMP_PATTERN, line).orElse(null));
+        entry.put("level", workerLevel(level, statusLabel, failed, rateLimited));
+        entry.put("category", operation);
+        entry.put("message", workerMessage(operation, statusLabel, failed, rateLimited));
+        entry.put("detail", workerDetail(workerFields));
+        entry.put("status", null);
+        entry.put("elapsedMs", workerElapsedMs(workerFields));
+        entry.put("user", null);
+        entry.put("traceId", workerTraceId(line, workerFields));
+        entry.put("source", blankToNull(source) == null ? "worker" : source);
+        return Optional.of(entry);
+    }
+
+    private static boolean shouldExposeWorkerActivity(
+            String task,
+            String method,
+            String status,
+            boolean failed,
+            boolean rateLimited
+    ) {
+        if (method.contains(".publishCompleted") || method.contains(".publishFailed") || status.contains("이벤트 발행")) {
+            return failed;
+        }
+
+        if (failed || rateLimited || status.contains("재시도")) {
+            return true;
+        }
+
+        if (task.contains("진행률") || status.contains("진행률")) {
+            return false;
+        }
+
+        boolean operationTask = task.contains("랭킹")
+                || task.contains("데이터 수집")
+                || task.contains("챔피언 분석")
+                || task.contains("게임 데이터 동기화");
+        if (!operationTask) {
+            return false;
+        }
+
+        return status.contains("수신")
+                || status.contains("시작")
+                || status.contains("완료")
+                || status.contains("진행");
+    }
+
+    private static String workerOperation(String task) {
+        if (task.contains("랭킹")) {
+            return "랭킹 업데이트";
+        }
+        if (task.contains("데이터 수집") || task.contains("매치")) {
+            return "Riot 매치 데이터 수집";
+        }
+        if (task.contains("챔피언 분석")) {
+            return "챔피언 분석";
+        }
+        if (task.contains("게임 데이터") || task.contains("동기화")) {
+            return "게임 데이터 동기화";
+        }
+        return "Worker 작업";
+    }
+
+    private static String workerMessage(String operation, String status, boolean failed, boolean rateLimited) {
+        if (rateLimited) {
+            return operation + "가 Riot API 요청 제한으로 대기 중입니다.";
+        }
+        if (failed) {
+            return operation + " 작업이 실패했습니다.";
+        }
+        if (status.contains("재시도") || status.contains("대기")) {
+            return operation + " 작업을 재시도하기 위해 대기 중입니다.";
+        }
+        if (status.contains("수신")) {
+            return operation + " 요청을 Worker가 수신했습니다.";
+        }
+        if (status.contains("시작")) {
+            return operation + " 작업을 시작했습니다.";
+        }
+        if (status.contains("완료")) {
+            return operation + " 작업을 완료했습니다.";
+        }
+        if (status.contains("진행")) {
+            return operation + " 작업이 진행 중입니다.";
+        }
+        return operation + ": " + status;
+    }
+
+    private static String workerLevel(
+            String loggedLevel,
+            String status,
+            boolean failed,
+            boolean rateLimited
+    ) {
+        if (failed) {
+            return "ERROR";
+        }
+        if (rateLimited || status.contains("대기") || status.contains("재시도")) {
+            return "WARN";
+        }
+        return loggedLevel;
+    }
+
+    private static String workerDetail(Map<String, String> fields) {
+        StringBuilder detail = new StringBuilder();
+        appendDetail(detail, "작업 ID", fields.get("jobId"));
+        appendDetail(detail, "티어", fields.get("tier"));
+        appendDetail(detail, "처리 건수", firstPresent(fields, "count", "processedCount", "matchCount"));
+        appendDetail(detail, "전체 건수", firstPresent(fields, "total", "totalCount", "totalPuuids"));
+        appendDetail(detail, "재시도", fields.get("attempt"));
+        appendDetail(detail, "대기 시간", secondsLabel(fields.get("retryAfterSeconds")));
+        appendDetail(detail, "패치 버전", fields.get("version"));
+        appendDetail(detail, "오류", firstPresent(fields, "reason", "message"));
+        return detail.toString();
+    }
+
+    private static Long workerElapsedMs(Map<String, String> fields) {
+        return parseLong(firstPresent(fields, "elapsedMs", "durationMs")).orElse(null);
+    }
+
+    private static String workerTraceId(String line, Map<String, String> fields) {
+        String traceId = blankToNull(fields.get("traceId"));
+        if (traceId != null) {
+            return traceId;
+        }
+        return extract(TRACE_PATTERN, line).orElse(null);
+    }
+
+    private static String firstPresent(Map<String, String> fields, String... keys) {
+        for (String key : keys) {
+            String value = blankToNull(fields.get(key));
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private static String secondsLabel(String value) {
+        String normalized = blankToNull(value);
+        return normalized == null ? null : normalized + "초";
     }
 
     private static boolean isBusinessActivity(String uri, String method) {
