@@ -61,6 +61,13 @@ const formatDuration = (milliseconds: number) => {
   return `${totalSeconds}초`;
 };
 
+const formatInterval = (minutes: number) => {
+  if (minutes >= 60 && minutes % 60 === 0) {
+    return `${minutes / 60}시간`;
+  }
+  return `${minutes}분`;
+};
+
 const formatPercent = (value?: number) => {
   if (value === undefined || value < 0) return "측정 대기";
   return `${(value * 100).toFixed(1)}%`;
@@ -449,7 +456,9 @@ export default function AdminPage() {
                 <div>
                   <p className="text-sm font-black text-[#a76886]">랭킹 자동 갱신</p>
                   <h2 className="mt-1 text-2xl font-black">
-                    {rankingScheduler.enabled ? "20분마다 실행 중" : "자동 실행 꺼짐"}
+                    {rankingScheduler.enabled
+                      ? `${formatInterval(rankingScheduler.intervalMinutes)}마다 실행 중`
+                      : "자동 실행 꺼짐"}
                   </h2>
                   <p className="mt-2 text-sm font-bold text-[#a76886]">
                     상태: {rankingScheduler.running ? "업데이트 진행 중" : rankingScheduler.lastResult}
@@ -489,7 +498,7 @@ export default function AdminPage() {
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <MetricCard
                   label="실행 주기"
-                  value={`${rankingScheduler.intervalMinutes}분`}
+                  value={formatInterval(rankingScheduler.intervalMinutes)}
                   icon={<RefreshCw className="h-5 w-5" />}
                 />
                 <MetricCard

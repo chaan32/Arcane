@@ -181,7 +181,7 @@ public class AdminDashboardService {
         Map<String, Object> status = new LinkedHashMap<>();
         status.put("enabled", rankerScheduler.isAutomaticRankingUpdateEnabled());
         status.put("running", rankerScheduler.isRankingUpdateRunning());
-        status.put("intervalMinutes", 20);
+        status.put("intervalMinutes", rankerScheduler.getIntervalMinutes());
         status.put("lastStartedAt", rankerScheduler.getLastStartedAt());
         status.put("lastFinishedAt", rankerScheduler.getLastFinishedAt());
         status.put("lastTrigger", rankerScheduler.getLastTrigger());
@@ -277,7 +277,7 @@ public class AdminDashboardService {
             int fromIndex = Math.max(0, allLines.size() - safeLines);
             List<String> selectedLines = allLines.subList(fromIndex, allLines.size());
             response.put("lines", selectedLines);
-            response.put("activities", readableActivities(selectedLines, logSource(selectedPath.getFileName().toString())));
+            response.put("activities", readableActivities(logFiles));
             response.put("message", "OK");
             log.info(ApiLogSupport.api(
                     "관리자 로그 조회",
@@ -290,7 +290,7 @@ public class AdminDashboardService {
             return response;
         } catch (Exception e) {
             response.put("lines", List.of());
-            response.put("activities", List.of());
+            response.put("activities", readableActivities(logFiles));
             response.put("message", "로그 파일을 읽지 못했습니다: " + e.getMessage());
             log.error(ApiLogSupport.api(
                             "관리자 로그 조회",
@@ -304,11 +304,31 @@ public class AdminDashboardService {
         }
     }
 
-    private List<Map<String, Object>> readableActivities(List<String> lines, String source) {
-        return lines.stream()
-                .map(line -> ReadableActivityLog.parse(line, source))
-                .flatMap(Optional::stream)
+    private List<Map<String, Object>> readableActivities(List<Path> logFiles) {
+        List<Map<String, Object>> activities = new ArrayList<>();
+        List<Path> orderedLogFiles = logFiles.stream()
+                .sorted(Comparator.comparing(this::lastModifiedAt))
                 .toList();
+
+        for (Path logFile : orderedLogFiles) {
+            try {
+                String source = logSource(logFile.getFileName().toString());
+                readLogLines(logFile).stream()
+                        .map(line -> ReadableActivityLog.parse(line, source))
+                        .flatMap(Optional::stream)
+                        .forEach(activities::add);
+            } catch (Exception e) {
+                log.warn(ApiLogSupport.api(
+                        "관리자 운영 이벤트 조회",
+                        "AdminDashboardService.readableActivities",
+                        "로그 파일 건너뜀",
+                        "fileName=" + logFile.getFileName() + " | reason=" + e.getMessage()
+                ));
+            }
+        }
+
+        int fromIndex = Math.max(0, activities.size() - MAX_LOG_LINES);
+        return new ArrayList<>(activities.subList(fromIndex, activities.size()));
     }
 
     private List<Path> listLogFilePaths() {

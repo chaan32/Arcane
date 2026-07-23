@@ -77,7 +77,8 @@ public class SummonerService {
             Optional<Match> match = matchService.getMatchByMatchId(matchId);
 
             // step 2-1) : match가 있다면 바로 matchDataDto 구성하기
-            if (match.isPresent()) {
+            if (match.isPresent()
+                    && match.get().hasCompleteParticipantsFor(puuid)) {
                 addPresentedMatch(matchInfoResDtos, match.get(), puuid);
             }
             // step 2-2) : match가 없다면 만들고 matchDataDto 구성하기

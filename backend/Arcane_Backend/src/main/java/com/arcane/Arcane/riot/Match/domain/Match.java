@@ -62,4 +62,13 @@ public class Match {
         }
         return null;
     }
+    public boolean hasCompleteParticipantsFor(String puuid) {
+        return participants != null
+                && participants.size() == 10
+                && participants.stream()
+                .anyMatch(participant ->
+                        participant.getSummoner() != null
+                                && puuid.equals(participant.getSummoner().getPuuid())
+                );
+    }
 }

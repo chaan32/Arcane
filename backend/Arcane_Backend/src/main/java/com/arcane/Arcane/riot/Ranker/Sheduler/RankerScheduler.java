@@ -3,6 +3,8 @@ package com.arcane.Arcane.riot.Ranker.Sheduler;
 
 import com.arcane.Arcane.common.Kafka.producer.RankingUpdateProducer;
 import com.arcane.Arcane.common.Logging.ApiLogSupport;
+import com.arcane.Arcane.web.Admin.service.RankingSchedulerSettingService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,7 +16,10 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 @Slf4j
 public class RankerScheduler {
+    private static final int AUTOMATIC_UPDATE_INTERVAL_MINUTES = 60;
+
     private final RankingUpdateProducer rankingUpdateProducer;
+    private final RankingSchedulerSettingService rankingSchedulerSettingService;
 
     private volatile boolean automaticRankingUpdateEnabled = false;
     private volatile boolean rankingUpdatePublishing = false;
@@ -23,6 +28,13 @@ public class RankerScheduler {
     private volatile String lastTrigger = "NONE";
     private volatile String lastResult = "NOT_RUN";
     private volatile String lastErrorMessage;
+
+    @PostConstruct
+    public void restoreAutomaticRankingUpdateEnabled() {
+        boolean savedEnabled = rankingSchedulerSettingService.loadAutomaticUpdateEnabled(automaticRankingUpdateEnabled);
+        this.automaticRankingUpdateEnabled = savedEnabled;
+        log.warn(ApiLogSupport.BUSINESS_FLOW, "ranking", "automaticUpdate", "RESTORED", "enabled=" + savedEnabled);
+    }
 
     @Scheduled(cron = "0 0 * * * *", zone = "Asia/Seoul")
     public void scheduleRankingUpdate(){
@@ -73,6 +85,7 @@ public class RankerScheduler {
     }
 
     public void setAutomaticRankingUpdateEnabled(boolean enabled) {
+        rankingSchedulerSettingService.saveAutomaticUpdateEnabled(enabled);
         this.automaticRankingUpdateEnabled = enabled;
         log.warn(ApiLogSupport.BUSINESS_FLOW, "ranking", "automaticUpdate", "UPDATED", "enabled=" + enabled);
     }
@@ -83,6 +96,10 @@ public class RankerScheduler {
 
     public boolean isRankingUpdateRunning() {
         return rankingUpdatePublishing;
+    }
+
+    public int getIntervalMinutes() {
+        return AUTOMATIC_UPDATE_INTERVAL_MINUTES;
     }
 
     public LocalDateTime getLastStartedAt() {

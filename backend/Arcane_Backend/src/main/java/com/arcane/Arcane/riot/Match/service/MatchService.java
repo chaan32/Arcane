@@ -22,19 +22,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class MatchService {
+    private static final int MATCH_LOCK_STRIPE_COUNT = 256;
+
     private final RiotApiService riotApiService;
     private final MatchTimelineService matchTimelineService;
     private final ChampionService championService;
     private final MatchRepository matchRepository;
     private final MatchWriteService matchWriteService;
-    private final ConcurrentMap<String, Object> matchCreationLocks = new ConcurrentHashMap<>();
+    private final Object[] matchCreationLocks = createMatchCreationLocks();
 
 
 
@@ -42,20 +42,70 @@ public class MatchService {
         return matchRepository.findMatchByMatchId(matchId);
     }
 
-    public Match saveIfAbsent(Match newMatch){
-        String matchId = newMatch.getMatchId();
-        Object lock = matchCreationLocks.computeIfAbsent(matchId, ignored -> new Object());
+    public Match saveIfAbsent(Match newMatch) {
+        String matchId = Objects.requireNonNull(
+                newMatch.getMatchId(),
+                "matchId는 필수입니다."
+        );
+        Object lock = lockForMatchId(matchId);
 
         synchronized (lock) {
-            return matchRepository.findMatchByMatchId(matchId)
-                    .orElseGet(() -> {
-                        try {
-                            return matchWriteService.saveNewMatch(newMatch);
-                        } catch (DataIntegrityViolationException | ConcurrencyFailureException e) {
-                            return findMatchAfterConcurrentSave(matchId, e);
-                        }
-                    });
+            Optional<Match> existingMatch =
+                    matchRepository.findMatchByMatchId(matchId);
+
+            if (existingMatch.isPresent()) {
+                Match existing = existingMatch.get();
+                if (hasCompleteParticipants(existing)) {
+                    return existing;
+                }
+                return matchWriteService.repairParticipants(
+                        existing,
+                        newMatch.getParticipants()
+                );
+            }
+
+            try {
+                return matchWriteService.saveNewMatch(newMatch);
+            } catch (DataIntegrityViolationException | ConcurrencyFailureException e) {
+                Match savedByOtherRequest = findMatchAfterConcurrentSave(matchId, e);
+                if (hasCompleteParticipants(savedByOtherRequest)) {
+                    return savedByOtherRequest;
+                }
+                return matchWriteService.repairParticipants(
+                        savedByOtherRequest,
+                        newMatch.getParticipants()
+                );
+            }
         }
+    }
+
+    private static Object[] createMatchCreationLocks() {
+        Object[] locks = new Object[MATCH_LOCK_STRIPE_COUNT];
+        Arrays.setAll(locks, ignored -> new Object());
+        return locks;
+    }
+
+    private Object lockForMatchId(String matchId) {
+        int lockIndex = Math.floorMod(matchId.hashCode(), matchCreationLocks.length);
+        return matchCreationLocks[lockIndex];
+    }
+
+    private boolean hasCompleteParticipants(Match match) {
+        if (match.getParticipants() == null
+                || match.getParticipants().size() != 10) {
+            return false;
+        }
+
+        long uniquePuuidCount = match.getParticipants().stream()
+                .map(MatchParticipant::getSummoner)
+                .filter(Objects::nonNull)
+                .map(Summoner::getPuuid)
+                .filter(Objects::nonNull)
+                .filter(puuid -> !puuid.isBlank())
+                .distinct()
+                .count();
+
+        return uniquePuuidCount == 10;
     }
 
 

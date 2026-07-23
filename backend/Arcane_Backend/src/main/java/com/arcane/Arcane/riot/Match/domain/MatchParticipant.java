@@ -7,6 +7,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
+@Table(
+        name = "match_participant",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_match_participant_match_summoner",
+                columnNames = {"match_id", "summoner_id"}
+        )
+)
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
