@@ -34,6 +34,9 @@ import {
   toggleRankingScheduler,
 } from "@/services/adminApi";
 
+const ACTIVE_JOB_STATUSES = new Set(["PUBLISHED", "RUNNING"]);
+const ACTIVE_JOB_POLL_INTERVAL_MS = 2000;
+
 const formatBytes = (value: number) => {
   if (value < 0) return "제한 없음";
   if (value < 1024) return `${value} B`;
@@ -217,11 +220,12 @@ export default function AdminPage() {
   }, [isClearlyNotAdmin]);
 
   useEffect(() => {
+    const rankingStatus = dashboard?.rankingScheduler.latestWorkerJob?.status;
     const datasetStatus = dashboard?.datasetCollection.latestJob?.status;
     const championAnalysisStatus = dashboard?.championAnalysis.latestJob?.status;
     const gameDataSyncStatus = dashboard?.gameDataSync.latestJob?.status;
-    const shouldPoll = [datasetStatus, championAnalysisStatus, gameDataSyncStatus].some((status) =>
-      status ? ["PUBLISHED", "RUNNING"].includes(status) : false
+    const shouldPoll = [rankingStatus, datasetStatus, championAnalysisStatus, gameDataSyncStatus].some((status) =>
+      status ? ACTIVE_JOB_STATUSES.has(status) : false
     );
 
     if (!shouldPoll) {
@@ -235,10 +239,11 @@ export default function AdminPage() {
           setLogs(nextDashboard.logs);
         })
         .catch(() => undefined);
-    }, 5000);
+    }, ACTIVE_JOB_POLL_INTERVAL_MS);
 
     return () => window.clearInterval(intervalId);
   }, [
+    dashboard?.rankingScheduler.latestWorkerJob?.status,
     dashboard?.datasetCollection.latestJob?.status,
     dashboard?.championAnalysis.latestJob?.status,
     dashboard?.gameDataSync.latestJob?.status,
