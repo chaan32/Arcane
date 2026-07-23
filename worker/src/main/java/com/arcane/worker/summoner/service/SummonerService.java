@@ -23,8 +23,23 @@ public class SummonerService {
         return summonerRepository.findSummonerEntityByPuuid(puuid);
     }
 
-    public SummonerEntity saveSummoner(RiotAccountDto riotAccountDto) {
-        return summonerRepository.save(new SummonerEntity(riotAccountDto));
+//    public SummonerEntity saveSummoner(RiotAccountDto riotAccountDto) {
+//        return summonerRepository.findSummonerEntityByPuuid(riotAccountDto.puuid())
+//                .orElseGet(() -> summonerRepository.save(new SummonerEntity(riotAccountDto)));
+//    }
+    public SummonerEntity saveSummoner(RiotAccountDto dto){
+        if (dto==null || dto.puuid() == null || dto.puuid().isBlank()){
+            throw new IllegalArgumentException("puuid가 비어 있습니다.");
+        }
+        String trimmedGameName = dto.gameName().replace(" ", "");
+
+        summonerRepository.upsertIdentity(
+                dto.puuid(), dto.gameName(), trimmedGameName, dto.tagLine()
+        );
+        return summonerRepository.findSummonerEntityByPuuid(dto.puuid())
+                .orElseThrow(() -> new IllegalStateException(
+                        "소환사 UPSERT 후 조회에 실패했습니다. puuid=" + dto.puuid()
+                ));
     }
 
     public SummonerEntity updateRankerScore(
